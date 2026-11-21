@@ -1,0 +1,41 @@
+# NapCat-M Stack: NapCat-M（QQ 协议端）+ AstrBot（LLM Bot 框架）一键编排
+#
+# 使用：
+#   1. 先执行 scripts/prepare-napcat-m.ps1 或 .sh 准备 NapCat-M 产物（napcat-m/napcat/）
+#   2. docker compose up -d --build
+#   3. 浏览器打开 http://127.0.0.1:6099 扫码登录 QQ 小号
+#   4. 浏览器打开 http://127.0.0.1:6185 进入 AstrBot WebUI
+# 详见 README.md
+services:
+  astrbot:
+    image: soulter/astrbot:latest
+    container_name: astrbot
+    restart: unless-stopped
+    ports:
+      - "6185:6185"          # AstrBot WebUI
+    volumes:
+      - ./data/astrbot:/AstrBot/data
+    environment:
+      - TZ=Asia/Shanghai
+
+  napcat-m:
+    build: ./napcat-m
+    image: napcat-m:latest
+    container_name: napcat-m
+    restart: unless-stopped
+    depends_on:
+      - astrbot
+    ports:
+      - "6099:6099"          # NapCat WebUI（扫码登录）
+    environment:
+      - TZ=Asia/Shanghai
+      # 可选：预先指定 QQ 号，启动后直接对该账号生成配置
+      - ACCOUNT=${NAPCAT_ACCOUNT:-}
+      # 可选：与宿主机用户一致的 uid/gid，避免挂载目录权限问题（Linux 上推荐）
+      - NAPCAT_UID=${NAPCAT_UID:-1000}
+      - NAPCAT_GID=${NAPCAT_GID:-1000}
+    volumes:
+      # NapCat-M 预配置（反向 WS 已指向 astrbot 容器，新登录账号自动继承）
+      - ./napcat-m/config:/app/napcat/config
+      # QQ 登录态持久化，重启不用重新扫码
+      - ./data/napcat/QQ:/app/.config/QQ
