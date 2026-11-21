@@ -1,19 +1,18 @@
 @echo off
-chcp 65001 >nul
 title NapCat-M Stack
 cd /d "%~dp0"
 
-echo [1/2] å¯åŠ¨ NapCat-M Shellï¼ˆQQ æ³¨å…¥ç«¯ï¼‰...
+echo [1/2] Æô¶¯ NapCat-M Shell£¨QQ ×¢Èë¶Ë£©...
 start "NapCat-M Shell" "%~dp0run-napcat.bat"
 
-echo [2/2] å¯åŠ¨ AstrBotï¼ˆLLM Bot æ¡†æž¶ï¼‰...
+echo [2/2] Æô¶¯ AstrBot£¨LLM Bot ¿ò¼Ü£©...
 start "AstrBot" "%~dp0run-astrbot.bat"
 
 echo.
-echo ä¸¤ç«¯å·²å¯åŠ¨ï¼š
-echo   NapCat-M WebUI : http://127.0.0.1:6099   ï¼ˆQQ æ‰«ç ç™»å½• / ç½‘ç»œé…ç½®ï¼‰
-echo   AstrBot WebUI  : http://127.0.0.1:6185   ï¼ˆå¡« API Key / äººæ ¼ / æ’ä»¶ï¼‰
+echo Á½¶ËÒÑÆô¶¯£º
+echo   NapCat-M WebUI : http://127.0.0.1:6099   £¨QQ É¨ÂëµÇÂ¼ / ÍøÂçÅäÖÃ£©
+echo   AstrBot WebUI  : http://127.0.0.1:6185   £¨Ìî API Key / ÈË¸ñ / ²å¼þ£©
 echo.
-echo é¦–æ¬¡ä½¿ç”¨è¯·çœ‹ä»“åº“ README.md çš„ã€Œäº”æ­¥ä¸Šæ‰‹ã€ã€‚
-echo å…³é—­æœ¬çª—å£ä¸å½±å“ä¸¤ç«¯è¿è¡Œï¼›è¦åœæ­¢è¯·åœ¨ä¸¤ä¸ªå­çª—å£é‡Œ Ctrl+Cã€‚
+echo Ê×´ÎÊ¹ÓÃÇë¿´²Ö¿â README.md µÄ¡¸Îå²½ÉÏÊÖ¡¹¡£
+echo ¹Ø±Õ±¾´°¿Ú²»Ó°ÏìÁ½¶ËÔËÐÐ£»ÒªÍ£Ö¹ÇëÔÚÁ½¸ö×Ó´°¿ÚÀï Ctrl+C¡£
 pause
