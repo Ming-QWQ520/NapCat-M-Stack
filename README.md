@@ -2,118 +2,187 @@
 
 # NapCat-M Stack
 
-**NapCat-M + AstrBot 开箱即用整合包：几条命令，从零到「扫码 → 填 Key → 养鱼」。**
+**NapCat-M + AstrBot 真正的一体化项目：一个仓库、一条命令、一个进程树、一个端口。**
+
+`python main.py` → 扫码 → 填 Key → 开聊 🎣
 
 </div>
 
 ---
 
-> [!IMPORTANT]
-> 本项目把 **[NapCat-M](https://github.com/Ming-QWQ520/NapCatQQ-M)**（QQNT / OneBot v11 协议端，上游 NapCatQQ 停维后的延续分支）与 **[AstrBot](https://github.com/AstrBotDevs/AstrBot)**（LLM Bot 框架）编排为一个开箱即用的栈：
->
-> - 协议层**零改动**兼容——AstrBot 原生 aiocqhttp 适配器（OneBot v11）直连 NapCat-M
-> - NapCat-M 预配置已内置：新 QQ 号登录后自动以反向 WS 连接 AstrBot，不用手动建网络配置
-> - 支持 Docker Compose（Linux / Windows / macOS 服务器）与 Windows 原生一键包两种形态
->
-> ⚠️ 请使用 **QQ 专用小号**，协议端方案存在风控风险。切勿把 NapCat 端口暴露到公网。
+## 这是什么
 
-## 五步上手
+本仓库把 **[NapCat-M](https://github.com/Ming-QWQ520/NapCatQQ-M)**（QQNT / OneBot v11 协议端）与
+**[AstrBot](https://github.com/AstrBotDevs/AstrBot)**（LLM Bot 框架）整合为**一个项目**：
+
+- **不再是脚本编排**——AstrBot 以源码内嵌于本仓库（见 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md)），
+  由统一入口 `main.py` 在**同一进程内**驱动其核心生命周期与仪表盘
+- **一个进程树**——`python main.py` 是唯一主进程，QQ（内嵌 NapCat-M）是其受监督子进程；
+  QQ 崩溃则整栈退出，交给 `restart: unless-stopped` 或用户重启
+- **一个端口**——6185 同时服务两套 WebUI：
+  - `/` → **AstrBot 控制台**（填大模型 API Key / 人格 / 插件市场 / 对话）
+  - `/napcat/` → **NapCat WebUI**（QQ 扫码登录 / 协议端网络配置 / 日志 / 终端）
+  - NapCat 自带的 WebUI 被固定绑定在容器内 `127.0.0.1:6099`，只经统一网关的
+    `/napcat` 反向代理对外，**不再需要暴露第二个端口**
+- **零接线**——首次启动自动完成全部配置：
+  - AstrBot 侧自动创建 `aiocqhttp`（OneBot v11）平台，监听 `6199` 反向 WS
+  - NapCat 侧预置反向 WS 配置（`ws://127.0.0.1:6199/ws`），新登录的 QQ 号自动继承
+  - NapCat WebUI 静态资源自动重写为 `/napcat` 子路径（挂载进 AstrBot 的同一 FastAPI 应用）
 
 ```
-起栈 → 扫码 → 进 AstrBot → 填 Key/人格 → 开聊
+python main.py                     ← 唯一主进程
+├── AstrBot 核心 + 仪表盘（进程内运行，非子进程）
+│   └── 统一网关 :6185
+│       ├── /             AstrBot WebUI
+│       └── /napcat/...   ──反向代理──▶  NapCat WebUI（127.0.0.1:6099，仅本机）
+└── QQ（内嵌 NapCat-M）             ← 受监督子进程
+    └── 反向 WS ──▶ 127.0.0.1:6199 ──▶ AstrBot aiocqhttp 平台
 ```
 
-### 1. 起栈
+> [!WARNING]
+> 请使用 **QQ 专用小号**，协议端方案存在风控风险。6185 是唯一需要开放的端口，
+> 请勿把本服务直接暴露到公网（如需远程访问，建议套 SSH 隧道或带鉴权的前置反代）。
 
-**服务器 / Docker（推荐）：**
+## 快速开始
+
+### 方式一：Docker（推荐，服务器/Linux）
 
 ```bash
 git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
 cd NapCat-M-Stack
-bash scripts/prepare-napcat-m.sh        # 下载 NapCat-M 产物（国内网络可手动下载 zip 放到 scripts/）
 docker compose up -d --build
 ```
 
-**Windows 原生（不用 Docker）：**
+构建时会自动下载 NapCat-M 产物并完成 WebUI 子路径重写（网络受限可用
+`--build-arg NAPCAT_ZIP_URL=` 指向镜像源；也可先跑
+`bash scripts/prepare-napcat.sh` 把产物放进构建上下文）。
+
+### 方式二：Windows 原生
 
 ```powershell
 git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
 cd NapCat-M-Stack\windows
-powershell -ExecutionPolicy Bypass -File install.ps1    # 需已安装 QQNT 客户端与 Python 3.12+
+powershell -ExecutionPolicy Bypass -File install.ps1
+# 仅需一次：双击运行 napcat-onekey\NapCatInstaller.exe 完成注入
 ```
 
-安装完成后运行 `windows\NapCatInstaller.exe` 完成对本机 QQ 的注入，然后双击 `windows\start.bat`。
+之后日常使用：双击 `windows\start.bat`。
 
-### 2. 扫码
+### 方式三：Linux / macOS 原生
 
-- Docker 形态：浏览器打开 `http://<服务器IP>:6099`，扫码登录 **QQ 专用小号**
-- Windows 形态：NapCat-M 启动时会打印 WebUI 地址与 token（默认 `http://127.0.0.1:6099`）
+```bash
+git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
+cd NapCat-M-Stack
+./start.sh            # 自动准备 venv、依赖、NapCat 产物，然后启动整栈
+```
 
-### 3. 进入 AstrBot
+> 原生 Linux/macOS 需要**已安装 QQNT**（Linux 版安装方法见
+> [NapCatQQ-M 文档](https://github.com/Ming-QWQ520/NapCatQQ-M/blob/main/docs/INSTALL-Linux-macOS.md)）。
+> 若 QQ 不在默认路径，用环境变量 `QQ_PATH` 指定，或用 `NAPCAT_QQ_CMD` 覆盖整条启动命令。
+> 无显示服务器时自动尝试 `xvfb-run`。
 
-- Docker 形态：`http://<服务器IP>:6185`；首次密码在启动日志里查看：
-
-  ```bash
-  docker logs astrbot | grep -i password
-  ```
-
-- Windows 形态：`http://127.0.0.1:6185`，密码同样在 AstrBot 控制台窗口中打印
-
-### 4. 接线（通常已自动完成）
-
-NapCat-M 的预配置已包含指向 AstrBot 的反向 WS（`ws://astrbot:6199/ws`）。你只需在 AstrBot WebUI 建一次适配器：
-
-> 机器人 → 创建机器人 → **OneBot v11** → 反向 WebSocket 主机 `0.0.0.0`、端口 `6199` → 保存
-
-连接成功时 AstrBot 日志会出现蓝色字样 `aiocqhttp(OneBot v11) 适配器已连接`（NapCat-M 每隔 5 秒自动重连，建立适配器后即刻接通）。
-
-> Windows 原生形态下，NapCat-M 预配置指向的是容器名 `astrbot`，需在 NapCat WebUI「网络配置」里把该连接的 URL 改为 `ws://127.0.0.1:6199/ws`。
-
-### 5. 填 Key、养鱼
-
-AstrBot WebUI 内：
-
-1. **服务提供商**：填入大模型 API Key（OpenAI / DeepSeek / Gemini 等均支持）
-2. **人格情景**：设置 bot 人设与语气
-3. **插件市场**：按需安装插件
-4. 用另一个 QQ 号给你的小号发消息，开聊 🎣
-
-## 文件结构
+## 三步上手
 
 ```
-NapCat-M-Stack/
-├── docker-compose.yml          # astrbot + napcat-m 双容器编排
-├── napcat-m/
-│   ├── Dockerfile              # 基于 NapCat-Docker 官方镜像，覆盖注入 NapCat-M 修复版
-│   ├── napcat/                 # NapCat-M 产物（由 scripts/prepare-napcat-m.* 生成，不入库）
-│   └── config/onebot11.json    # NapCat-M 基线预配置：反向 WS → astrbot:6199（新账号自动继承）
-├── scripts/
-│   ├── prepare-napcat-m.ps1    # 下载并解压 NapCat.Shell.zip（Windows）
-│   └── prepare-napcat-m.sh     # 同上（Linux / macOS）
-└── windows/
-    ├── install.ps1             # Windows 一键安装（NapCat-M Shell + AstrBot venv）
-    ├── start.bat               # 一键拉起两端
-    ├── run-napcat.bat          # 单独启动 NapCat-M
-    └── run-astrbot.bat         # 单独启动 AstrBot
+起栈 → 扫码 → 填 Key
 ```
+
+1. **起栈**：按上面任一方式启动，浏览器打开 `http://<主机IP>:6185`
+2. **扫码**：进入 `http://<主机IP>:6185/napcat/`（或看启动日志里带 token 的直达链接），
+   用 QQ 专用小号扫码登录
+3. **填 Key**：回到 `http://<主机IP>:6185/`，AstrBot 控制台里填大模型 API Key、
+   设人格、逛插件市场
+
+接线已经自动完成——扫码成功后 NapCat 会反向 WS 连上 AstrBot（日志出现
+`aiocqhttp(OneBot v11) 适配器已连接`），用另一个 QQ 给小号发消息即可开聊。
+
+## 端口与路径
+
+| 端口 | 用途 | 是否对外 |
+| --- | --- | --- |
+| **6185** | 统一网关（AstrBot `/` + NapCat `/napcat/`） | ✅ 唯一需要开放的端口 |
+| 6199 | AstrBot aiocqhttp 反向 WS 监听 | ❌ 仅本机/容器内 |
+| 6099 | NapCat WebUI 内部端口 | ❌ 仅绑定 127.0.0.1，经网关代理 |
+
+| 路径 | 说明 |
+| --- | --- |
+| `data/` | AstrBot 数据 + NapCat 配置（`data/napcat/config/`）+ QQ 登录态（Docker 下 `data/qq/`） |
+| `napcat/` | NapCat-M Shell 产物（prepare 脚本生成，已含子路径重写） |
+| `astrbot/` | 内嵌的 AstrBot 源码（未修改，AGPL-3.0） |
+| `stack/` | 集成层：网关代理、子进程监督、WebUI 重写器、自动接线 |
+| `main.py` | 唯一入口 |
+
+## 统一网关是怎么做到的
+
+NapCat WebUI 前端（vite 构建）把所有网络路径硬编码为根绝对路径（`/webui/*`、`/api/*`、
+`/files/*`、`/plugin/*`），而 AstrBot 仪表盘同样占用 `/` 与 `/api/*`。同端口共存的关键在
+`stack/webui_patch.py`：在准备阶段对 NapCat WebUI 静态产物做**确定性的子路径重写**
+（axios 基址、SPA 路由 basename、SSE/WS 端点、资源 URL、CSS 字体引用共 30+ 处，
+规则幂等且对真实构建产物逐处验证），再由 `stack/napcat_proxy.py` 把 `/napcat/<path>`
+剥前缀转发给只监听本机的 NapCat 后端：
+
+- HTTP 全方法流式透传（SSE 长连接友好）
+- WebSocket 双向泵（WebUI 终端 `/api/ws/terminal` 与调试 `/api/Debug/ws`）
+- JSON 响应体站内路径自动加前缀（如插件图标 URL）
+- `Location` 重定向头改写（`/` → `/napcat/webui`）
+- NapCat 未就绪时返回 503（API 走 NapCat 风格 JSON，页面走自动刷新的等待页）
+
+代理被挂载进 AstrBot 仪表盘的**同一个 FastAPI 应用**（插入路由表最前，避开其静态
+兜底路由），因此两套 WebUI 共享同一个 hypercorn 监听、同一套 TLS/日志配置。
+
+## 常用配置（环境变量）
+
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `STACK_PORT` | `6185` | 统一网关端口 |
+| `NAPCAT_ACCOUNT` | 空 | 预先指定 QQ 号（配合快速登录） |
+| `NAPCAT_QQ_CMD` | 平台自动 | 完整覆盖 QQ/NapCat 启动命令（空格分隔） |
+| `QQ_PATH` | `/opt/QQ/qq` | Linux 原生部署时 QQ 可执行文件路径 |
+| `STACK_AUTO_WIRE` | `1` | 首次启动自动创建 AstrBot 的 OneBot 平台 |
+| `STACK_EXIT_WITH_NAPCAT` | `1` | QQ 子进程退出时整栈退出 |
+| `NAPCAT_UID` / `NAPCAT_GID` | `1000` | Docker 下运行用户（对齐宿主机避免权限问题） |
+
+AstrBot 自身配置（仪表盘端口/用户名密码/提供商等）照常在 AstrBot WebUI 里改。
 
 ## 常见问题
 
-**Q: NapCat-M 一直重连但 AstrBot 日志显示「适配器已被关闭」？**
-AstrBot 侧还没创建 OneBot v11 适配器（见第 4 步），或两端不在同一 docker 网络（本 compose 已在同一网络，容器名 `astrbot` 可直接解析）。
-
-**Q: 服务器上公网访问 6099 安全吗？**
-NapCat WebUI 有 token 保护，但仍建议仅临时放行扫码，登录后关闭公网端口，或用 SSH 隧道：`ssh -L 6099:127.0.0.1:6099 user@server`。
+**Q: 打开 `/napcat/` 一直显示「NapCat 正在启动」？**
+QQ 启动需要 10~60 秒（容器内首次更慢）。长时间停留请看启动日志中 `[NapCat]` 前缀
+的输出；若 QQ 崩溃，整栈会退出并由 restart 策略拉起。
 
 **Q: 重新部署后要重新扫码吗？**
-不用。QQ 登录态持久化在 `data/napcat/QQ`（Docker）或 QQ 数据目录（Windows），只要卷还在。
+不用。QQ 登录态持久化在数据卷（Docker：`./data/qq`；原生：QQ 自身数据目录）。
 
-**Q: 想换别的 Bot 框架？**
-NapCat-M 是标准 OneBot v11 协议端，任何支持 OneBot v11（HTTP / 正反向 WS）的框架都能接：在 NapCat WebUI「网络配置」里加对应连接即可，预配置的 AstrBot 连接可以停用。
+**Q: 我想分别访问原来的两个端口？**
+NapCat 的 6099 已固定只绑 127.0.0.1（安全考虑，统一走 `/napcat`）。AstrBot 仪表盘
+就是 6185 本身。如确实需要独立端口，请自行在宿主机配置反代。
 
-**Q: NapCat-M 和上游 NapCatQQ 什么关系？**
-NapCat-M 是上游 NapNeko/NapCatQQ 停止维护并清空仓库后，基于其最后完整源码（4.18.4）的延续分支，已修复 30+ 处遗留 bug 与安全漏洞。见 [NapCatQQ-M 仓库](https://github.com/Ming-QWQ520/NapCatQQ-M)。
+**Q: NapCat WebUI 的登录密钥（token）在哪看？**
+启动日志会打印带 token 的直达链接（`/napcat/webui/?token=xxx`）；也可查看
+`data/napcat/config/webui.json`。登录一次后浏览器会记住。
 
-## License
+**Q: AstrBot 怎么升级？**
+按 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md) 的流程同步上游源码即可；集成层
+（`stack/`）对 AstrBot 只依赖其公开的库接口，改动面极小。
 
-遵循所编排组件的原始许可：NapCat-M 与 AstrBot 各自的 LICENSE。使用请遵守当地法律法规，QQ 账号风控风险自负。
+**Q: 支持别的 OneBot 框架吗？**
+NapCat-M 是标准 OneBot v11 协议端。想换 Lagrange 等其它实现：停用栈内 QQ
+（`STACK_EXIT_WITH_NAPCAT=0`），把 `NAPCAT_QQ_CMD` 指向你的协议端启动命令即可，
+AstrBot 侧无需任何改动。
+
+## 开发与测试
+
+```bash
+./venv/bin/python -m pytest tests/test_webui_patch.py   # 重写器单元测试
+bash scripts/e2e-test.sh                                # 需先以 mock 后端启动整栈：
+NAPCAT_QQ_CMD="./venv/bin/python tests/mock_napcat_webui.py 6099" ./venv/bin/python main.py
+```
+
+`tests/mock_napcat_webui.py` 是 NapCat WebUI 后端的行为模拟器（静态/SSE/WS/JSON 路径
+改写均有覆盖），用于无 QQ 环境下端到端验证统一网关。
+
+## 许可
+
+本仓库整体以 **AGPL-3.0** 发布（与内嵌的 AstrBot 一致），见 [LICENSE](LICENSE) 与
+[VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md)。NapCat-M 产物在部署时从其 Release 下载，
+许可遵循上游。使用请遵守当地法律法规，QQ 账号风控风险自负。

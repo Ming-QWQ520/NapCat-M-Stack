@@ -1,15 +1,27 @@
-# Docker 构建产物（由 scripts/prepare-napcat-m.* 生成）
-napcat-m/napcat/
+# ---- 运行数据（AstrBot data / NapCat 配置 / QQ 登录态） ----
+data/*
+!data/.gitkeep
 
-# 运行数据
-data/
-
-# 下载缓存
+# ---- NapCat 产物（prepare 脚本生成/下载，不入库） ----
+napcat/
 scripts/NapCat.Shell.zip
 scripts/shell-extract/
 scripts/NapCat.Shell.Windows.OneKey.zip
 
-# Windows 部署产物
-windows/napcat-shell/
-windows/AstrBot/
+# ---- Windows 部署产物 ----
+windows/napcat-onekey/
 windows/*.zip
+
+# ---- Python ----
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- 其它 ----
+*.log
+.DS_Store
