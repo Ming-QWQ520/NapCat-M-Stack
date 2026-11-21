@@ -1,4 +1,4 @@
-# 准备 NapCat-M Docker 构建产物：下载 NapCat.Shell.zip 并解压 napcat/ 到 napcat-m/napcat/
+﻿# 准备 NapCat-M Docker 构建产物：下载 NapCat.Shell.zip 并解压 napcat/ 到 napcat-m/napcat/
 # 用法：在仓库根目录执行  powershell -ExecutionPolicy Bypass -File scripts/prepare-napcat-m.ps1
 # 若网络受限，可手动从 Release 下载 NapCat.Shell.zip 放到本目录，脚本会自动识别。
 param(
@@ -19,7 +19,7 @@ if (Test-Path (Join-Path $targetDir 'napcat.mjs')) {
 if (-not (Test-Path $zipPath)) {
     Write-Host "[..] 下载 NapCat.Shell.zip ($Version) ..."
     try {
-        & curl.exe -sSL --connect-timeout 20 --max-time 600 -o $zipPath $url
+        & curl.exe -sSL --ssl-revoke-best-effort --connect-timeout 20 --max-time 600 -o $zipPath $url
         if (-not (Test-Path $zipPath)) { throw '下载失败' }
     } catch {
         Write-Warning "自动下载失败（网络受限时可手动下载）："
