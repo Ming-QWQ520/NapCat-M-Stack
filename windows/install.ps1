@@ -14,7 +14,11 @@ $version = 'v4.18.42'
 Write-Host '==== NapCat-M Stack Windows 安装 ===='
 
 # ---------- 1. NapCat-M Shell ----------
-if (Test-Path (Get-ChildItem $shellDir -Filter 'napcat.bat' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+$napcatBat = $null
+if (Test-Path $shellDir) {
+    $napcatBat = Get-ChildItem -Path $shellDir -Filter 'napcat.bat' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+if ($null -ne $napcatBat) {
     Write-Host '[OK] NapCat-M Shell 已就位，跳过。'
 } else {
     $zipPath = Join-Path $winDir 'NapCat.Shell.Windows.OneKey.zip'
@@ -31,6 +35,10 @@ if (Test-Path (Get-ChildItem $shellDir -Filter 'napcat.bat' -Recurse -ErrorActio
     Write-Host '[..] 解压 OneKey 包 ...'
     if (Test-Path $shellDir) { Remove-Item $shellDir -Recurse -Force }
     Expand-Archive -Path $zipPath -DestinationPath $shellDir -Force
+    if (-not (Get-ChildItem -Path $shellDir -Filter 'NapCatInstaller.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+        Write-Warning '解压结果中未找到 NapCatInstaller.exe，请检查 zip 内容（可能不是 OneKey 包）。'
+        exit 1
+    }
     Write-Host "[OK] NapCat-M Shell 就位：windows\napcat-shell\"
     Write-Host '     注意：稍后需先运行其中的 NapCatInstaller.exe 完成注入（需要已安装 QQNT 客户端 9.9.x）。'
 }
