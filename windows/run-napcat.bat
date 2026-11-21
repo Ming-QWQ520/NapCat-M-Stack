@@ -1,12 +1,11 @@
 @echo off
-chcp 65001 >nul
 title NapCat-M Shell
 cd /d "%~dp0"
 set "NAPCAT_BAT="
 for /r "%~dp0napcat-shell" %%f in (napcat.bat) do set "NAPCAT_BAT=%%f"
 if "%NAPCAT_BAT%"=="" (
-    echo [!] æœªæ‰¾åˆ° napcat.batï¼šè¯·å…ˆè¿è¡Œ install.ps1 å®‰è£… NapCat-M Shellï¼Œ
-    echo     å¹¶æ‰§è¡Œå…¶ä¸­çš„ NapCatInstaller.exe å®Œæˆå¯¹æœ¬æœº QQ çš„æ³¨å…¥ã€‚
+    echo [!] Î´ÕÒµ½ napcat.bat£ºÇëÏÈÔËĞĞ install.ps1 °²×° NapCat-M Shell£¬
+    echo     ²¢Ö´ĞĞÆäÖĞµÄ NapCatInstaller.exe Íê³É¶Ô±¾»ú QQ µÄ×¢Èë¡£
     pause
     exit /b 1
 )
