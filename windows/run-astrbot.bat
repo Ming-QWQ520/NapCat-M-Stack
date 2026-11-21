@@ -1,9 +1,8 @@
 @echo off
-chcp 65001 >nul
 title AstrBot
 cd /d "%~dp0AstrBot"
 if not exist "venv\Scripts\python.exe" (
-    echo [!] æœªæ‰¾åˆ° AstrBot è™šæ‹Ÿç¯å¢ƒï¼šè¯·å…ˆè¿è¡Œ install.ps1 å®Œæˆ AstrBot éƒ¨ç½²ã€‚
+    echo [!] Î´ÕÒµ½ AstrBot ĞéÄâ»·¾³£ºÇëÏÈÔËĞĞ install.ps1 Íê³É AstrBot ²¿Êğ¡£
     pause
     exit /b 1
 )
