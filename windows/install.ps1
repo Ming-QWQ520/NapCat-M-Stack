@@ -1,4 +1,4 @@
-# NapCat-M Stack Windows 一键安装
+﻿# NapCat-M Stack Windows 一键安装
 # 功能：
 #   1. 准备 NapCat-M Shell（Windows OneKey 包，注入本机 QQNT 客户端）
 #   2. 部署 AstrBot（Python 源码方式，独立 venv，不污染系统环境）
@@ -25,7 +25,7 @@ if ($null -ne $napcatBat) {
     if (-not (Test-Path $zipPath)) {
         $url = "https://github.com/Ming-QWQ520/NapCatQQ-M/releases/download/$version/NapCat.Shell.Windows.OneKey.zip"
         Write-Host "[..] 下载 NapCat-M Shell OneKey 包 ..."
-        & curl.exe -sSL --connect-timeout 20 --max-time 600 -o $zipPath $url
+        & curl.exe -sSL --ssl-revoke-best-effort --connect-timeout 20 --max-time 600 -o $zipPath $url
         if (-not (Test-Path $zipPath)) {
             Write-Warning "自动下载失败，请手动下载并放到 windows\ 目录后重跑本脚本："
             Write-Warning "  $url"
@@ -49,10 +49,17 @@ if (Test-Path (Join-Path $astrbotDir 'main.py')) {
 } else {
     # Python 3.12+ 检测
     $py = $null
+    $pyVer = ''
     foreach ($cmd in 'python', 'py') {
         try {
-            $v = & $cmd -c 'import sys; print("%d.%d" % (sys.version_info[0], sys.version_info[1]))' 2>$null
-            if ($v -and [version]::Parse("$v.0") -ge [version]::Parse('3.12.0')) { $py = $cmd; break }
+            $v = (& $cmd -c "import sys; print('.'.join(map(str, sys.version_info[:2])))" 2>$null)
+            if ($LASTEXITCODE -eq 0 -and $v) {
+                $ver = ("$v").Trim()
+                $parts = $ver.Split('.')
+                $major = [int]$parts[0]
+                $minor = [int]$parts[1]
+                if ($major -gt 3 -or ($major -eq 3 -and $minor -ge 12)) { $py = $cmd; $pyVer = $ver; break }
+            }
         } catch { }
     }
     if (-not $py) {
@@ -62,7 +69,7 @@ if (Test-Path (Join-Path $astrbotDir 'main.py')) {
         Write-Warning '安装后重跑本脚本。'
         exit 1
     }
-    Write-Host "[OK] 检测到 Python $v"
+    Write-Host "[OK] 检测到 Python $pyVer"
 
     if (-not (Test-Path $astrbotDir)) {
         Write-Host '[..] 获取 AstrBot 源码 ...'
