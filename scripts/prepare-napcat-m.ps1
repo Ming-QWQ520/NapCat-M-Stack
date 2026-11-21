@@ -38,7 +38,9 @@ Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 $napcatDir = Join-Path $extractDir 'napcat'
 if (-not (Test-Path (Join-Path $napcatDir 'napcat.mjs'))) {
     $inner = Get-ChildItem $extractDir -Directory | Select-Object -First 1
-    $napcatDir = Join-Path $inner.FullName 'napcat'
+    if ($null -ne $inner) {
+        $napcatDir = Join-Path $inner.FullName 'napcat'
+    }
 }
 if (-not (Test-Path (Join-Path $napcatDir 'napcat.mjs'))) {
     Write-Warning '解压结果中未找到 napcat.mjs，请检查 zip 内容。'
