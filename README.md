@@ -197,6 +197,7 @@ AstrBot 首次启动会在控制台打印随机初始密码（搜索 `初始密�
 `generated`），登录 AstrBot 后按提示修改；在 AstrBot 控制台改密后，
 NapCat 无需重启即接受新密码（按配置文件 mtime 实时同步）。想改密码请
 去 AstrBot 控制台，NapCat 侧不再单独改密。
+
 > 想让 NapCat 用独立密码：设 `STACK_SHARED_NAPCAT_PASSWORD=0` 重启，
 > NapCat 会在启动日志里生成并打印自己的初始密码（首次登录强制修改，
 > 需含英文和数字，长度 6-12 位，保存在 `data/napcat/config/webui.json`）。
