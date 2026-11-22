@@ -136,7 +136,7 @@ async def amain(args: argparse.Namespace) -> int:
     stop_event = asyncio.Event()
 
     # ---- 1. 栈引导：预置配置 + WebUI 产物子路径重写 -----------------------
-    webui_token = seed_napcat_configs(SETTINGS)
+    seed_napcat_configs(SETTINGS)
     patch_deployed_webui(SETTINGS)
 
     # ---- 2. 拉起 QQ(NapCat) 子进程（与 AstrBot 初始化并行） ---------------
@@ -157,15 +157,14 @@ async def amain(args: argparse.Namespace) -> int:
 
     async def log_napcat_ready() -> None:
         try:
-            port, token = await supervisor.wait_ready(timeout=300)
+            port = await supervisor.wait_ready(timeout=300)
         except Exception:  # noqa: BLE001
             return
         gateway_port = _effective_gateway_port()
-        display_token = token or webui_token or ""
-        suffix = f"?token={display_token}" if SETTINGS.print_napcat_token and display_token else ""
         print(
             "\n ✨ NapCat WebUI 已接入统一网关\n"
-            f"   ➜  http://127.0.0.1:{gateway_port}/napcat/webui/{suffix}\n"
+            f"   ➜  http://127.0.0.1:{gateway_port}/napcat/webui/\n"
+            "   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）\n"
             f"   ➜  内部端口 127.0.0.1:{port}（仅本机，经 /napcat 代理对外）\n"
         )
 

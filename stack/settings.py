@@ -129,11 +129,6 @@ class StackSettings:
         default_factory=lambda: _env_bool("STACK_AUTO_WIRE", True)
     )
 
-    #: 启动横幅中附带 NapCat WebUI 的 token 直达链接（与 NapCat 上游行为一致）
-    print_napcat_token: bool = field(
-        default_factory=lambda: _env_bool("STACK_PRINT_NAPCAT_TOKEN", True)
-    )
-
     #: NapCat 子进程退出后整个栈退出（由 docker restart / 用户重启兜底）
     exit_with_napcat: bool = field(
         default_factory=lambda: _env_bool("STACK_EXIT_WITH_NAPCAT", True)

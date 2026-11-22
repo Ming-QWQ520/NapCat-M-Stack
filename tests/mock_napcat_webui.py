@@ -30,6 +30,15 @@ MIME = {
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+#: 模拟后端的账户密码（对齐 NapCat-M v4.18.44 的账户密码登录）
+MOCK_USERNAME = "napcat"
+MOCK_PASSWORD = "mock1234"
+
+
+def _password_hash(password: str) -> str:
+    """对齐真实后端：SHA256(密码 + '.napcat')。"""
+    return hashlib.sha256((password + ".napcat").encode()).hexdigest()
+
 
 def _response(status: str, body: bytes, content_type: str, extra: str = "") -> bytes:
     head = (
@@ -48,7 +57,7 @@ def _json_response(payload, status: str = "200 OK") -> bytes:
     return _response(status, body, "application/json")
 
 
-def handle_http(method: str, path: str, query: str, headers: dict) -> bytes | None:
+def handle_http(method: str, path: str, query: str, headers: dict, body: bytes = b"") -> bytes | None:
     """返回完整响应字节；返回 None 表示挂起（SSE，由调用方处理）。"""
     if path == "/":
         return b"HTTP/1.1 301 Moved Permanently\r\nLocation: /webui\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
@@ -79,10 +88,36 @@ def handle_http(method: str, path: str, query: str, headers: dict) -> bytes | No
         authed = bool(headers.get("authorization"))
         return _json_response({"code": 0, "message": "", "data": authed})
     if path == "/api/auth/login":
-        # 对齐真实后端：data.Credential 即后续 Bearer 令牌
+        # 对齐真实后端：{username, hash} → data.Credential 即后续 Bearer 令牌
+        try:
+            payload = json.loads(body or b"{}")
+        except ValueError:
+            payload = {}
+        if (
+            payload.get("username") == MOCK_USERNAME
+            and payload.get("hash") == _password_hash(MOCK_PASSWORD)
+        ):
+            return _json_response(
+                {
+                    "code": 0,
+                    "message": "",
+                    "data": {"Credential": "mock-credential", "passwordChangeRequired": False},
+                }
+            )
         return _json_response(
-            {"code": 0, "message": "", "data": {"Credential": "mock-credential"}}
+            {"code": -1, "message": "username or password is invalid", "data": None}
         )
+    if path == "/api/auth/update_password":
+        # 对齐真实后端：{oldPassword, newPassword} → 新凭证
+        try:
+            payload = json.loads(body or b"{}")
+        except ValueError:
+            payload = {}
+        if payload.get("oldPassword") == MOCK_PASSWORD and payload.get("newPassword"):
+            return _json_response(
+                {"code": 0, "message": "", "data": {"Credential": "mock-credential-2"}}
+            )
+        return _json_response({"code": -1, "message": "旧密码不匹配", "data": None})
     if path == "/api/Base/GetVersion":
         return _json_response(
             {"code": 0, "message": "", "data": {"version": "4.18.42-mock"}}
@@ -180,6 +215,15 @@ async def handle_connection(
             path, _, query = target.partition("?")
             print(f"[mock] {method} {target}")
 
+            # 读取请求体（登录/改密等 POST 需要）
+            body = b""
+            try:
+                content_length = int(headers.get("content-length", "0") or "0")
+            except ValueError:
+                content_length = 0
+            if content_length > 0:
+                body = await reader.readexactly(content_length)
+
             if headers.get("upgrade", "").lower() == "websocket":
                 accept = base64.b64encode(
                     hashlib.sha1(
@@ -202,7 +246,7 @@ async def handle_connection(
             def respond(payload: bytes) -> None:
                 writer.write(payload)
 
-            response = handle_http(method, path, query, headers)
+            response = handle_http(method, path, query, headers, body)
             if response is None:
                 await serve_sse(writer)
             else:
@@ -226,10 +270,10 @@ async def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 6099
     server = await asyncio.start_server(handle_connection, "127.0.0.1", port)
     print(f"[mock] NapCat WebUI 模拟后端已启动: http://127.0.0.1:{port}")
-    print(f"[NapCat] [WebUi] WebUi Token: mock-token-123")
-    print(
-        f"[NapCat] [WebUi] WebUi User Panel Url: http://127.0.0.1:{port}/webui?token=mock-token-123"
-    )
+    print("[NapCat] [WebUi] WebUI 已启用账户密码登录")
+    print(f"[NapCat] [WebUi] 初始账户: {MOCK_USERNAME}")
+    print(f"[NapCat] [WebUi] 初始密码: {MOCK_PASSWORD}")
+    print(f"[NapCat] [WebUi] WebUi User Panel Url: http://127.0.0.1:{port}/webui")
     async with server:
         await server.serve_forever()
 

@@ -82,13 +82,18 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 ```bash
 git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
 cd NapCat-M-Stack
-./start.sh            # 自动准备 venv、依赖、NapCat 产物，然后启动整栈
+bash scripts/prepare-napcat.sh   # 下载 NapCat-M 产物并完成 /napcat 子路径重写
+sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
+./start.sh                       # 自动准备 venv、依赖，然后启动整栈
 ```
 
 > 原生 Linux/macOS 需要**已安装 QQNT**（Linux 版安装方法见
 > [NapCatQQ-M 文档](https://github.com/Ming-QWQ520/NapCatQQ-M/blob/main/docs/INSTALL-Linux-macOS.md)）。
 > 若 QQ 不在默认路径，用环境变量 `QQ_PATH` 指定，或用 `NAPCAT_QQ_CMD` 覆盖整条启动命令。
 > 无显示服务器时自动尝试 `xvfb-run`。
+>
+> **完整教程**（QQNT 安装、接线原理、systemd 开机自启、升级与排障）：
+> [docs/deploy-linux-native.md](./docs/deploy-linux-native.md)
 
 ## 三步上手
 
@@ -97,13 +102,18 @@ cd NapCat-M-Stack
 ```
 
 1. **起栈**：按上面任一方式启动，浏览器打开 `http://<主机IP>:6185`
-2. **扫码**：进入 `http://<主机IP>:6185/napcat/`（或看启动日志里带 token 的直达链接），
-   用 QQ 专用小号扫码登录
+2. **扫码**：进入 `http://<主机IP>:6185/napcat/`，用账户密码登录
+   （默认账户 `napcat`，初始密码在启动日志中打印，首次登录后会强制要求
+   修改密码），然后用 QQ 专用小号扫码登录
 3. **填 Key**：回到 `http://<主机IP>:6185/`，AstrBot 控制台里填大模型 API Key、
    设人格、逛插件市场
 
 接线已经自动完成——扫码成功后 NapCat 会反向 WS 连上 AstrBot（日志出现
 `aiocqhttp(OneBot v11) 适配器已连接`），用另一个 QQ 给小号发消息即可开聊。
+
+两个 WebUI 之间可直接跳转：AstrBot → NapCat 把地址改为 `/napcat`；
+NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。两边登录凭证相互独立，
+来回切换不会被登出（需 NapCat-M v4.18.44 及以上）。
 
 ## 端口与路径
 
@@ -167,9 +177,12 @@ QQ 启动需要 10~60 秒（容器内首次更慢）。长时间停留请看启�
 NapCat 的 6099 已固定只绑 127.0.0.1（安全考虑，统一走 `/napcat`）。AstrBot 仪表盘
 就是 6185 本身。如确实需要独立端口，请自行在宿主机配置反代。
 
-**Q: NapCat WebUI 的登录密钥（token）在哪看？**
-启动日志会打印带 token 的直达链接（`/napcat/webui/?token=xxx`）；也可查看
-`data/napcat/config/webui.json`。登录一次后浏览器会记住。
+**Q: NapCat WebUI 的登录账户和初始密码在哪看？**
+默认账户 `napcat`；初始密码由 NapCat 首次启动时自动生成并打印在启动日志里
+（搜索 `[NapCat] [WebUi] 初始密码`），首次登录成功后会强制要求修改密码
+（需包含英文和数字，长度 6-12 位）。修改后的密码保存在
+`data/napcat/config/webui.json`。忘记密码时删除该文件中的 `password` 字段并
+重启，即可重新生成并打印新的初始密码。
 
 **Q: AstrBot 怎么升级？**
 按 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md) 的流程同步上游源码即可；集成层

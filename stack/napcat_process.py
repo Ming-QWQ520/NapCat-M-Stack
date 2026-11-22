@@ -24,9 +24,10 @@ from pathlib import Path
 
 from .settings import StackSettings
 
+# 兼容新旧两代 NapCat-M：旧版（token 登录）携带 ?token=，新版（账户密码登录）无查询参数
 _WEBUI_URL_LINE = re.compile(
     r"\[NapCat\]\s*\[WebUi\]\s*WebUi User Panel Url:\s*"
-    r"http://127\.0\.0\.1:(\d+)/webui\?token=([0-9A-Za-z!@#$%^&*()_+\-=]+)"
+    r"http://127\.0\.0\.1:(\d+)/webui(?:\?token=[0-9A-Za-z!@#$%^&*()_+\-=]+)?"
 )
 
 _WINDOWS_BOOTMAIN_CANDIDATES = ("NapCatWinBootMain.exe",)
@@ -63,7 +64,6 @@ class NapCatSupervisor:
         self.settings = settings
         self.process: subprocess.Popen | None = None
         self._port: int | None = None
-        self._token: str | None = None
         self._ready_event = asyncio.Event()
         self._stopped_by_us = False
         self._reader_task: asyncio.Task | None = None
@@ -74,10 +74,6 @@ class NapCatSupervisor:
     @property
     def port(self) -> int | None:
         return self._port
-
-    @property
-    def token(self) -> str | None:
-        return self._token
 
     @property
     def base_url(self) -> str | None:
@@ -269,11 +265,10 @@ class NapCatSupervisor:
             print(f"[NapCat] {text}")
             m = _WEBUI_URL_LINE.search(text)
             if m:
-                port, token = int(m.group(1)), m.group(2)
+                port = int(m.group(1))
                 if self._port != port:
                     print(f"[NapCat] WebUI 端口发现（日志解析）: {port}")
                 self._port = port
-                self._token = token
                 self._ready_event.set()
 
     async def _monitor_exit(self) -> None:
@@ -325,21 +320,21 @@ class NapCatSupervisor:
             await asyncio.sleep(2.0)
 
     # ------------------------------------------------------------------ 就绪
-    async def wait_ready(self, timeout: float = 120.0) -> tuple[int, str | None]:
-        """等待 WebUI 就绪，返回 (端口, 令牌)。"""
+    async def wait_ready(self, timeout: float = 120.0) -> int:
+        """等待 WebUI 就绪，返回端口。"""
         if not self.is_running:
             raise NapCatProcessError("NapCat 子进程未在运行")
         if self._ready_event.is_set():
-            return self._port, self._token
+            return self._port
         try:
             await asyncio.wait_for(self._ready_event.wait(), timeout=timeout)
         except asyncio.TimeoutError as e:
             raise NapCatNotReadyError(
                 f"等待 NapCat WebUI 就绪超时（{timeout}s）。请检查上方 NapCat 日志。"
             ) from e
-        return self._port, self._token
+        return self._port
 
-    async def ensure_ready(self, timeout: float = 8.0) -> tuple[int, str | None]:
+    async def ensure_ready(self, timeout: float = 8.0) -> int:
         """轻量版：仅在请求到达时快速确认，不长期阻塞。"""
         return await self.wait_ready(timeout=timeout)
 

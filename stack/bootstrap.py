@@ -2,7 +2,8 @@
 
 目标：「扫码 → 填 Key → 开聊」路径上的手工接线步骤全部归零。
 
-- 预置 ``webui.json``：NapCat WebUI 只绑 127.0.0.1 ，端口与令牌由栈生成
+- 预置 ``webui.json``：NapCat WebUI 只绑 127.0.0.1，端口确定化；登录凭证
+  （账户 napcat + 初始密码）由 NapCat 启动时自动生成并输出到控制台
 - 预置 ``onebot11.json``：新登录的 QQ 号自动继承「反向 WS → 本机 6199」
 - AstrBot 侧自动创建 aiocqhttp(OneBot v11) 平台，监听 6199 等待 NapCat 回连
 """
@@ -10,60 +11,35 @@
 from __future__ import annotations
 
 import json
-import secrets
 from pathlib import Path
 
 from .settings import StackSettings
 
-WEBUI_TOKEN_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
-
-def generate_webui_token(length: int = 10) -> str:
-    return "".join(secrets.choice(WEBUI_TOKEN_ALPHABET) for _ in range(length))
-
-
-def seed_napcat_configs(settings: StackSettings) -> str:
-    """写入 NapCat 预置配置，返回 WebUI 令牌。
+def seed_napcat_configs(settings: StackSettings) -> None:
+    """写入 NapCat 预置配置。
 
     幂等：已存在的文件不覆盖（用户在 NapCat WebUI 里改过的配置优先）。
+    登录密码不在此处预置——由 NapCat 首次启动时自动生成初始密码并
+    打印到控制台（见 NapCat-M v4.18.44 的账户密码登录）。
     """
     config_dir = settings.napcat_config_dir
     config_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- webui.json：只绑本机，端口/令牌确定化 --------------------------
+    # ---- webui.json：只绑本机，端口确定化 --------------------------------
     webui_json = config_dir / "webui.json"
-    token: str | None = None
-    if webui_json.is_file():
-        try:
-            data = json.loads(webui_json.read_text(encoding="utf-8"))
-            token = data.get("token") or None
-        except (ValueError, OSError):
-            data = {}
-    else:
-        data = {}
-
     if not webui_json.is_file():
         data = {
             "host": "127.0.0.1",
             "port": settings.napcat_webui_port,
             "prefix": "",
-            "token": token or generate_webui_token(),
+            "username": "napcat",
             "loginRate": 3,
             "accessControlMode": "none",
             "ipWhitelist": [],
             "ipBlacklist": [],
             "enableXForwardedFor": False,
         }
-        webui_json.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        token = data["token"]
-
-    if not token or token == "napcat":
-        # 配置损坏或为默认值：生成新令牌并写回，避免 NapCat 每次随机化
-        token = generate_webui_token()
-        data["token"] = token
-        data.setdefault("host", "127.0.0.1")
         webui_json.write_text(
             json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
@@ -105,19 +81,6 @@ def seed_napcat_configs(settings: StackSettings) -> str:
             ),
             encoding="utf-8",
         )
-
-    return token
-
-
-def read_webui_token(settings: StackSettings) -> str | None:
-    """读取（可能已被用户修改的）WebUI 令牌。"""
-    webui_json = settings.napcat_config_dir / "webui.json"
-    try:
-        data = json.loads(webui_json.read_text(encoding="utf-8"))
-        token = data.get("token")
-        return token or None
-    except (ValueError, OSError):
-        return None
 
 
 def wire_astrbot_platform(settings: StackSettings) -> bool:

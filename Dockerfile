@@ -39,7 +39,7 @@ COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY scripts/docker-prepare.py /app/docker-prepare.py
 
 # NapCat-M 产物（下载/解压/子路径重写）
-ARG NAPCAT_VERSION=v4.18.42
+ARG NAPCAT_VERSION=v4.18.44
 ARG NAPCAT_ZIP_URL=""
 COPY . /src
 RUN python3 /src/scripts/docker-prepare.py \
