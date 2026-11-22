@@ -2,13 +2,13 @@
 # 准备 NapCat-M Shell 产物（Linux / macOS / Docker 构建上下文）
 #
 # 用法（仓库根目录执行）：
-#   bash scripts/prepare-napcat.sh [版本号，默认 v4.18.44]
+#   bash scripts/prepare-napcat.sh [版本号，默认 v4.18.43]
 #
 # 产物：napcat/（napcat.mjs + static/ + native/ + config/），其中 static/
 # 已完成 /napcat 子路径重写（统一网关同端口方案的关键步骤）。
 set -euo pipefail
 
-VERSION="${1:-v4.18.44}"
+VERSION="${1:-v4.18.43}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_DIR="$REPO_ROOT/napcat"
 ZIP_PATH="$REPO_ROOT/scripts/NapCat.Shell.zip"

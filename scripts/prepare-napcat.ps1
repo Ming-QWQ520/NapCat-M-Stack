@@ -11,7 +11,7 @@
 # 兼容性说明：本文件为 UTF-8 with BOM + CRLF，Windows PowerShell 5.1 与
 # PowerShell 7+ 均可直接运行。
 param(
-    [string]$Version = 'v4.18.44'
+    [string]$Version = 'v4.18.43'
 )
 
 $ErrorActionPreference = 'Stop'

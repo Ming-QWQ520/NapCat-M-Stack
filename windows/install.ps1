@@ -22,7 +22,7 @@
 param(
     [ValidateSet('Node', 'OneKey', '')]
     [string]$Flavor = '',
-    [string]$Version = 'v4.18.44',
+    [string]$Version = 'v4.18.43',
     [string]$PypiMirror = 'https://pypi.tuna.tsinghua.edu.cn/simple'
 )
 

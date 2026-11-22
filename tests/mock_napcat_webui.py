@@ -30,7 +30,7 @@ MIME = {
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-#: 模拟后端的账户密码（对齐 NapCat-M v4.18.44 的账户密码登录）
+#: 模拟后端的账户密码（对齐 NapCat-M v4.18.43 的账户密码登录）
 MOCK_USERNAME = "napcat"
 MOCK_PASSWORD = "mock1234"
 

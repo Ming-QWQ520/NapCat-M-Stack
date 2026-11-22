@@ -113,7 +113,7 @@ sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 
 两个 WebUI 之间可直接跳转：AstrBot → NapCat 把地址改为 `/napcat`；
 NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。两边登录凭证相互独立，
-来回切换不会被登出（需 NapCat-M v4.18.44 及以上）。
+来回切换不会被登出（需 NapCat-M v4.18.43 及以上）。
 
 ## 端口与路径
 

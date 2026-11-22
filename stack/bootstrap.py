@@ -21,7 +21,7 @@ def seed_napcat_configs(settings: StackSettings) -> None:
 
     幂等：已存在的文件不覆盖（用户在 NapCat WebUI 里改过的配置优先）。
     登录密码不在此处预置——由 NapCat 首次启动时自动生成初始密码并
-    打印到控制台（见 NapCat-M v4.18.44 的账户密码登录）。
+    打印到控制台（见 NapCat-M v4.18.43 的账户密码登录）。
     """
     config_dir = settings.napcat_config_dir
     config_dir.mkdir(parents=True, exist_ok=True)
