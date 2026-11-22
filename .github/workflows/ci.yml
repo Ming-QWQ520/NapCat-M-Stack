@@ -62,7 +62,10 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force
-          $results = Invoke-ScriptAnalyzer -Path @('windows/install.ps1', 'scripts/prepare-napcat.ps1') -Severity Error
+          $results = @()
+          foreach ($f in @('windows/install.ps1', 'scripts/prepare-napcat.ps1')) {
+            $results += Invoke-ScriptAnalyzer -Path $f -Severity Error
+          }
           if ($results -and $results.Count -gt 0) {
             $results | Format-List RuleName, ScriptName, Line, Message
             exit 1
