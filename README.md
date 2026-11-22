@@ -63,8 +63,17 @@ docker compose up -d --build
 git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
 cd NapCat-M-Stack\windows
 powershell -ExecutionPolicy Bypass -File install.ps1
-# 仅需一次：双击运行 napcat-onekey\NapCatInstaller.exe 完成注入
 ```
+
+安装器会交互选择部署形态（也可用 `-Flavor` 参数直接指定，便于无人值守）：
+
+| 形态 | 说明 | 适用 |
+| --- | --- | --- |
+| **Node 便携版**（默认，推荐） | 下载 `NapCat.Shell.Windows.Node.zip`（约 118 MB）：自带无头 QQ 与 Node.js 运行时，**免安装 QQ、免注入**，装完即用 | 干净机器 / 不想装 QQ |
+| **OneKey 注入版** | 下载 `NapCat.Shell.Windows.OneKey.zip`（约 1 MB）：由 `NapCatInstaller.exe` 部署便携 QQ 并注入 NapCat，需在安装后**手动运行一次**；注意其内置的 NapCat 下载源已随上游停维失效，失败时请改用 Node 便携版 | 带宽受限 / 愿意多一步手动操作 |
+
+两种形态可随时重跑 `install.ps1 -Flavor ...` 切换；同时存在时默认优先 Node 版，
+可用环境变量 `NAPCAT_FLAVOR=onekey` 强制。
 
 之后日常使用：双击 `windows\start.bat`。
 
@@ -106,7 +115,7 @@ cd NapCat-M-Stack
 
 | 路径 | 说明 |
 | --- | --- |
-| `data/` | AstrBot 数据 + NapCat 配置（`data/napcat/config/`）+ QQ 登录态（Docker 下 `data/qq/`） |
+| `data/` | AstrBot 数据 + NapCat 配置（`data/napcat/config/`）+ QQ 登录态（Docker 与 Windows Node 便携版：`data/qq/`） |
 | `napcat/` | NapCat-M Shell 产物（prepare 脚本生成，已含子路径重写） |
 | `astrbot/` | 内嵌的 AstrBot 源码（未修改，AGPL-3.0） |
 | `stack/` | 集成层：网关代理、子进程监督、WebUI 重写器、自动接线 |
@@ -136,7 +145,8 @@ NapCat WebUI 前端（vite 构建）把所有网络路径硬编码为根绝对�
 | --- | --- | --- |
 | `STACK_PORT` | `6185` | 统一网关端口 |
 | `NAPCAT_ACCOUNT` | 空 | 预先指定 QQ 号（配合快速登录） |
-| `NAPCAT_QQ_CMD` | 平台自动 | 完整覆盖 QQ/NapCat 启动命令（空格分隔） |
+| `NAPCAT_QQ_CMD` | 平台自动 | 完整覆盖 QQ/NapCat 启动命令（空格分隔，路径含空格时用引号包裹） |
+| `NAPCAT_FLAVOR` | `auto` | Windows 部署形态偏好：`auto`（Node 优先）/ `node` / `onekey` |
 | `QQ_PATH` | `/opt/QQ/qq` | Linux 原生部署时 QQ 可执行文件路径 |
 | `STACK_AUTO_WIRE` | `1` | 首次启动自动创建 AstrBot 的 OneBot 平台 |
 | `STACK_EXIT_WITH_NAPCAT` | `1` | QQ 子进程退出时整栈退出 |

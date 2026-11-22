@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -93,13 +94,34 @@ class StackSettings:
 
     @property
     def napcat_qq_command(self) -> list[str] | None:
-        """显式覆盖 QQ/NapCat 启动命令（空格分隔）。"""
+        """显式覆盖 QQ/NapCat 启动命令（空格分隔，支持引号包裹含空格路径）。"""
         raw = os.environ.get("NAPCAT_QQ_CMD", "").strip()
         if not raw:
             return None
+        if sys.platform == "win32":
+            # POSIX 模式的 shlex 会把反斜杠当转义符，吃掉 E:\... 风格路径；
+            # Windows 下改用保反斜杠的切分，再剥掉成对引号
+            import re
+
+            tokens = re.findall(r'"[^"]*"|\S+', raw)
+            return [
+                t[1:-1] if len(t) > 1 and t.startswith('"') and t.endswith('"') else t
+                for t in tokens
+            ]
         import shlex
 
         return shlex.split(raw)
+
+    @property
+    def napcat_flavor(self) -> str:
+        """Windows 部署形态偏好。
+
+        - ``auto``（默认）：Node 便携版优先，回退 OneKey
+        - ``node``：仅使用 Node 便携版（windows\\napcat-node\\node.exe）
+        - ``onekey``：仅使用 OneKey 注入版（NapCatWinBootMain.exe）
+        """
+        value = os.environ.get("NAPCAT_FLAVOR", "auto").strip().lower()
+        return value if value in ("auto", "node", "onekey") else "auto"
 
     # ---- 行为开关 -----------------------------------------------------------
     #: 首次启动自动在 AstrBot 中创建 aiocqhttp 平台（零接线）

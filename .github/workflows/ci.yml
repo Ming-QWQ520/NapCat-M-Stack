@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  windows-scripts:
+    name: Windows 脚本检查（编码 / 语法 / 分析器）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检查 ps1 编码（UTF-8 BOM + CRLF）
+        run: |
+          python3 - <<'PYEOF'
+          import re
+          import sys
+          from pathlib import Path
+
+          targets = [Path("windows/install.ps1"), Path("scripts/prepare-napcat.ps1")]
+          problems = []
+          for p in targets:
+              raw = p.read_bytes()
+              if not raw.startswith(b"\xef\xbb\xbf"):
+                  problems.append(f"{p}: 缺少 UTF-8 BOM（PS 5.1 下中文会乱码）")
+              text = raw.decode("utf-8-sig")
+              if re.search(r"(?<!\r)\n", text):
+                  problems.append(f"{p}: 存在裸 LF（应为 CRLF）")
+              if "\r\n" not in text:
+                  problems.append(f"{p}: 未发现 CRLF")
+          if problems:
+              print("\n".join(problems))
+              sys.exit(1)
+          print("encoding OK:", ", ".join(str(t) for t in targets))
+          PYEOF
+
+      - name: PowerShell 语法解析
+        shell: pwsh
+        run: |
+          $files = @('windows/install.ps1', 'scripts/prepare-napcat.ps1')
+          $allErrors = @()
+          foreach ($f in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $PWD $f), [ref]$tokens, [ref]$parseErrors) | Out-Null
+            foreach ($e in $parseErrors) {
+              $allErrors += "${f}:$($e.Extent.StartLineNumber):$($e.Extent.StartColumnNumber) $($e.Message)"
+            }
+          }
+          if ($allErrors.Count -gt 0) {
+            $allErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'parse OK'
+
+      - name: PSScriptAnalyzer（仅 Error 级）
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force
+          $results = Invoke-ScriptAnalyzer -Path @('windows/install.ps1', 'scripts/prepare-napcat.ps1') -Severity Error
+          if ($results -and $results.Count -gt 0) {
+            $results | Format-List RuleName, ScriptName, Line, Message
+            exit 1
+          }
+          Write-Host 'analyzer OK'
+
+  python-tests:
+    name: Python 单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装 pytest
+        run: pip install pytest
+      - name: 运行测试
+        run: pytest tests/ -q

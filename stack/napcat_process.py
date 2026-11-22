@@ -2,7 +2,10 @@
 
 统一入口 ``main.py`` 是唯一主进程，QQ（内嵌 NapCat-M）作为其子进程运行：
 
-- 按平台构造启动命令（Docker/Linux 直接拉起 QQ；Windows 拉起 OneKey 启动器）
+- 按平台构造启动命令：
+  - Windows Node 便携版（推荐）：直接拉起 windows\\napcat-node\\node.exe
+  - Windows OneKey：拉起 NapCatWinBootMain.exe（需先运行安装器注入）
+  - Linux / macOS / Docker：直接拉起 QQ（QQ 加载栈内 NapCat-M 产物）
 - 管道接住子进程 stdout/stderr，转发到统一日志并解析 WebUI 端口/令牌
 - WebUI 端口发现：优先解析日志行，失败则回退为 127.0.0.1 端口探测
   （NapCat 在端口被占用时会自动 +1 顺延，网关必须跟着发现实际端口）
@@ -27,6 +30,10 @@ _WEBUI_URL_LINE = re.compile(
 )
 
 _WINDOWS_BOOTMAIN_CANDIDATES = ("NapCatWinBootMain.exe",)
+
+#: Node 便携版（NapCat.Shell.Windows.Node.zip 解压产物）的入口标志：
+#: node.exe 与 index.js 同目录，napcat/ 在其下
+_WINDOWS_NODE_ENTRY_SCRIPT = "index.js"
 
 
 class NapCatNotReadyError(RuntimeError):
@@ -101,20 +108,48 @@ class NapCatSupervisor:
             return list(override), env, Path.cwd()
 
         if sys.platform == "win32":
-            bootmain = self._find_windows_bootmain()
-            if bootmain is None:
-                raise NapCatProcessError(
-                    "未找到 NapCatWinBootMain.exe。请先运行 windows\\install.ps1 "
-                    "并执行 NapCatInstaller.exe 完成安装，或用环境变量 "
-                    "NAPCAT_QQ_CMD 显式指定启动命令。"
-                )
-            if self.settings.napcat_account:
-                return (
-                    [str(bootmain), self.settings.napcat_account],
-                    env,
-                    bootmain.parent,
-                )
-            return [str(bootmain)], env, bootmain.parent
+            flavor = self.settings.napcat_flavor
+
+            # ---- Node 便携版（自带无头 QQ + Node.js，免注入） ----
+            if flavor in ("auto", "node"):
+                node_entry = self._find_windows_node_entry()
+                if node_entry is not None:
+                    node_exe, index_js = node_entry
+                    cmd = [str(node_exe), str(index_js)]
+                    if self.settings.napcat_account:
+                        cmd += ["-q", self.settings.napcat_account]
+                    # 便携版的 QQ 数据目录收进栈内（登录态随 data/ 持久化，
+                    # 不散落在用户目录）
+                    qq_data = self.settings.data_dir / "qq"
+                    try:
+                        qq_data.mkdir(parents=True, exist_ok=True)
+                    except OSError:
+                        pass
+                    env["NAPCAT_QQ_DATA_DIR"] = str(qq_data)
+                    return cmd, env, node_exe.parent
+
+            # ---- OneKey 注入版（需先运行 NapCatInstaller.exe） ----
+            if flavor in ("auto", "onekey"):
+                bootmain = self._find_windows_bootmain()
+                if bootmain is not None:
+                    if self.settings.napcat_account:
+                        return (
+                            [str(bootmain), self.settings.napcat_account],
+                            env,
+                            bootmain.parent,
+                        )
+                    return [str(bootmain)], env, bootmain.parent
+
+            hint = (
+                "Node（免注入便携版）" if flavor == "node"
+                else "OneKey（需先运行过 NapCatInstaller.exe）" if flavor == "onekey"
+                else "Node 便携版（-Flavor Node，推荐）或 OneKey 注入版（-Flavor OneKey）"
+            )
+            raise NapCatProcessError(
+                f"未找到 NapCat-M Windows 产物（当前偏好：{hint}）。"
+                "请先运行 windows\\install.ps1 完成安装，"
+                "或用环境变量 NAPCAT_QQ_CMD 显式指定启动命令。"
+            )
 
         # Linux / macOS / Docker
         qq_path = os.environ.get("QQ_PATH", "/opt/QQ/qq")
@@ -163,6 +198,21 @@ class NapCatSupervisor:
         for name in _WINDOWS_BOOTMAIN_CANDIDATES:
             for candidate in windows_dir.rglob(name):
                 return candidate
+        return None
+
+    def _find_windows_node_entry(self) -> tuple[Path, Path] | None:
+        """定位 Node 便携版入口：windows/**/node.exe 且同目录存在 index.js。
+
+        Returns:
+            (node.exe 路径, index.js 路径)；未找到返回 None。
+        """
+        windows_dir = self.settings.root / "windows"
+        if not windows_dir.is_dir():
+            return None
+        for node_exe in windows_dir.rglob("node.exe"):
+            index_js = node_exe.parent / _WINDOWS_NODE_ENTRY_SCRIPT
+            if index_js.is_file():
+                return node_exe, index_js
         return None
 
     async def start(self) -> None:

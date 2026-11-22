@@ -10,7 +10,9 @@ scripts/NapCat.Shell.Windows.OneKey.zip
 
 # ---- Windows 部署产物 ----
 windows/napcat-onekey/
+windows/napcat-node/
 windows/*.zip
+windows/start.bat
 
 # ---- Python ----
 venv/
