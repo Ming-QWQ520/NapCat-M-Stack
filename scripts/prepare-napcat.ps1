@@ -11,7 +11,7 @@
 # 兼容性说明：本文件为 UTF-8 with BOM + CRLF，Windows PowerShell 5.1 与
 # PowerShell 7+ 均可直接运行。
 param(
-    [string]$Version = 'v4.18.43'
+    [string]$Version = 'v4.18.44'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,29 +22,11 @@ $TargetDir = Join-Path $RepoRoot 'napcat'
 $ZipPath = Join-Path $PSScriptRoot 'NapCat.Shell.zip'
 $Url = "https://github.com/Ming-QWQ520/NapCatQQ-M/releases/download/$Version/NapCat.Shell.zip"
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-function Test-ZipIntact {
-    param([string]$Path)
-    try {
-        $z = [System.IO.Compression.ZipFile]::OpenRead($Path)
-        $count = $z.Entries.Count
-        $z.Dispose()
-        return ($count -gt 0)
-    } catch {
-        return $false
-    }
-}
-
 if (Test-Path (Join-Path $TargetDir 'napcat.mjs')) {
     Write-Host '[OK] napcat\napcat.mjs 已存在，跳过下载。'
 } else {
-    # 复用本地 zip 前先校验：curl 超时会留下半截文件，直接解压必然失败
-    if (-not ((Test-Path $ZipPath) -and (Test-ZipIntact $ZipPath))) {
-        if (Test-Path $ZipPath) {
-            Write-Host '[!] 已有的 NapCat.Shell.zip 不完整，删除后重新下载 ...'
-            Remove-Item $ZipPath -Force
-        }
+    # 已存在则直接复用本地 zip，不做校验（按用户要求取消验证步骤）
+    if (-not (Test-Path $ZipPath)) {
         Write-Host "[..] 下载 NapCat.Shell.zip ($Version) ..."
         # curl 的进度/错误信息走 stderr，临时放宽 EAP 避免 PS 5.1 包装成终止错误
         $prev = $ErrorActionPreference
@@ -60,11 +42,8 @@ if (Test-Path (Join-Path $TargetDir 'napcat.mjs')) {
             Write-Warning "自动下载失败，请手动下载后放到 scripts\ 目录重跑：$Url"
             exit 1
         }
-        if (-not (Test-ZipIntact $ZipPath)) {
-            Remove-Item $ZipPath -Force
-            Write-Warning "下载的 zip 校验失败（非有效 zip）：$Url"
-            exit 1
-        }
+    } else {
+        Write-Host '[OK] 复用已存在的 NapCat.Shell.zip。'
     }
     Write-Host '[..] 解压 napcat\ ...'
     $ExtractDir = Join-Path $PSScriptRoot 'shell-extract'

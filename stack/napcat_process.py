@@ -95,6 +95,15 @@ class NapCatSupervisor:
         env = {
             "NAPCAT_WORKDIR": str(self.settings.napcat_workdir),
         }
+        # 共用密码模式：把 AstrBot 的配置文件路径交给 NapCat，登录密码以
+        # AstrBot 为准（用户显式设置过 NAPCAT_ASTRBOT_CONFIG 时不覆盖）。
+        # 首次启动时 cmd_config.json 可能尚未生成——NapCat 侧在登录时才
+        # 惰性读取，届时 AstrBot 已完成初始化。
+        if (
+            self.settings.shared_napcat_password
+            and "NAPCAT_ASTRBOT_CONFIG" not in os.environ
+        ):
+            env["NAPCAT_ASTRBOT_CONFIG"] = str(self.settings.data_dir / "cmd_config.json")
 
         # 显式覆盖优先（保持当前工作目录，避免用户命令中的相对路径失效）
         override = self.settings.napcat_qq_command

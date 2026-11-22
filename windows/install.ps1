@@ -22,7 +22,7 @@
 param(
     [ValidateSet('Node', 'OneKey', '')]
     [string]$Flavor = '',
-    [string]$Version = 'v4.18.43',
+    [string]$Version = 'v4.18.44',
     [string]$PypiMirror = 'https://pypi.tuna.tsinghua.edu.cn/simple'
 )
 
@@ -59,35 +59,14 @@ function Invoke-StackDownload {
     }
 }
 
-function Test-ZipIntact {
-    param([string]$Path)
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    try {
-        $z = [System.IO.Compression.ZipFile]::OpenRead($Path)
-        $count = $z.Entries.Count
-        $z.Dispose()
-        return ($count -gt 0)
-    } catch {
-        return $false
-    }
-}
-
 function Get-StackZip {
-    # 已存在且完好则复用；损坏/不完整则删除重下（curl 上次超时会留下半截文件）
+    # 已存在则复用，不做 zip 校验（按用户要求取消验证步骤）
     param([string]$Name, [string]$Out, [string]$Desc)
-    if ((Test-Path $Out) -and (Test-ZipIntact $Out)) {
-        Write-Host "[OK] $Name 已存在且完好，复用。"
+    if (Test-Path $Out) {
+        Write-Host "[OK] $Name 已存在，复用。"
         return
     }
-    if (Test-Path $Out) {
-        Write-Host "[!] $Name 不完整或已损坏，重新下载 ..."
-        Remove-Item $Out -Force
-    }
     Invoke-StackDownload -Url "$ReleaseBase/$Version/$Name" -Out $Out -Desc $Desc
-    if (-not (Test-ZipIntact $Out)) {
-        Remove-Item $Out -Force
-        throw "$Name 下载后校验失败（非有效 zip），请重跑本脚本。"
-    }
 }
 
 function Expand-StackZip {
@@ -177,7 +156,7 @@ if ($Flavor -eq 'Node') {
         if (-not ((Test-Path $nodeExe) -and (Test-Path $indexJs) -and (Test-Path $napcatMjs))) {
             throw '解压结果不完整（缺 node.exe / index.js / napcat\napcat.mjs）。请删除 windows\napcat-node 后重跑本脚本。'
         }
-        # 校验通过的安装包不再保留，释放约 118 MB 磁盘空间
+        # 安装包不再保留，释放约 118 MB 磁盘空间（如需重新解压可重跑本脚本）
         Remove-Item $zipPath -Force
         Write-Host '[OK] Node 便携版就位：windows\napcat-node\'
     }
@@ -287,4 +266,4 @@ if ($Flavor -eq 'Node') {
 }
 Write-Host '2. 浏览器打开 http://127.0.0.1:6185'
 Write-Host '   - /       AstrBot（填大模型 API Key、人格、插件）'
-Write-Host '   - /napcat NapCat（扫码登录 QQ 专用小号，Token 见启动日志）'
+Write-Host '   - /napcat NapCat（账户 napcat，密码与 AstrBot 仪表盘一致）'

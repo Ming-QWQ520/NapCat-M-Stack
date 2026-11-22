@@ -56,7 +56,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--src", default="/src", help="构建上下文挂载位置")
     parser.add_argument("--dest", default="/app/napcat", help="产物输出目录")
-    parser.add_argument("--version", default="v4.18.43")
+    parser.add_argument("--version", default="v4.18.44")
     parser.add_argument("--url", default="", help="下载地址（默认按版本号拼接 GitHub Releases）")
     args = parser.parse_args()
 

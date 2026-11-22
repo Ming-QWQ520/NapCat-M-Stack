@@ -134,5 +134,12 @@ class StackSettings:
         default_factory=lambda: _env_bool("STACK_EXIT_WITH_NAPCAT", True)
     )
 
+    #: NapCat WebUI 与 AstrBot 仪表盘共用登录密码（以 AstrBot 为准）。
+    #: 向 NapCat 子进程注入 NAPCAT_ASTRBOT_CONFIG 指向 data/cmd_config.json；
+    #: AstrBot 控制台改密后 NapCat 无需重启即生效。置 0 可回退独立密码。
+    shared_napcat_password: bool = field(
+        default_factory=lambda: _env_bool("STACK_SHARED_NAPCAT_PASSWORD", True)
+    )
+
 
 SETTINGS = StackSettings()

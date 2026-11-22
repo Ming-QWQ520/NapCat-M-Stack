@@ -95,6 +95,18 @@ sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 > **完整教程**（QQNT 安装、接线原理、systemd 开机自启、升级与排障）：
 > [docs/deploy-linux-native.md](./docs/deploy-linux-native.md)
 
+### 方式四：宝塔面板（Linux 服务器）
+
+已在用宝塔面板的服务器，一条命令完成环境准备，再用面板的
+「进程守护管理器」常驻，可选挂域名 + HTTPS：
+
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/Ming-QWQ520/NapCat-M-Stack/main/scripts/baota-setup.sh) --mirror
+```
+
+> **完整教程**（QQNT 安装、守护进程配置、Nginx 反代 WebSocket/SSE 片段、
+> 升级与 FAQ）：[docs/deploy-baota.md](./docs/deploy-baota.md)
+
 ## 三步上手
 
 ```
@@ -102,9 +114,9 @@ sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 ```
 
 1. **起栈**：按上面任一方式启动，浏览器打开 `http://<主机IP>:6185`
-2. **扫码**：进入 `http://<主机IP>:6185/napcat/`，用账户密码登录
-   （默认账户 `napcat`，初始密码在启动日志中打印，首次登录后会强制要求
-   修改密码），然后用 QQ 专用小号扫码登录
+2. **扫码**：进入 `http://<主机IP>:6185/napcat/`，用账户 `napcat` + **与
+   AstrBot 仪表盘相同的密码**登录（密码以 AstrBot 为准：在 AstrBot 控制台
+   改密后 NapCat 无需重启即同步生效），然后用 QQ 专用小号扫码登录
 3. **填 Key**：回到 `http://<主机IP>:6185/`，AstrBot 控制台里填大模型 API Key、
    设人格、逛插件市场
 
@@ -113,7 +125,8 @@ sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 
 两个 WebUI 之间可直接跳转：AstrBot → NapCat 把地址改为 `/napcat`；
 NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。两边登录凭证相互独立，
-来回切换不会被登出（需 NapCat-M v4.18.43 及以上）。
+来回切换不会被登出；而登录**密码**两边一致（以 AstrBot 为准），
+只需记一套（需 NapCat-M v4.18.44 及以上）。
 
 ## 端口与路径
 
@@ -160,6 +173,7 @@ NapCat WebUI 前端（vite 构建）把所有网络路径硬编码为根绝对�
 | `QQ_PATH` | `/opt/QQ/qq` | Linux 原生部署时 QQ 可执行文件路径 |
 | `STACK_AUTO_WIRE` | `1` | 首次启动自动创建 AstrBot 的 OneBot 平台 |
 | `STACK_EXIT_WITH_NAPCAT` | `1` | QQ 子进程退出时整栈退出 |
+| `STACK_SHARED_NAPCAT_PASSWORD` | `1` | NapCat WebUI 与 AstrBot 仪表盘共用登录密码（以 AstrBot 为准）；置 `0` 回退为 NapCat 独立密码 |
 | `NAPCAT_UID` / `NAPCAT_GID` | `1000` | Docker 下运行用户（对齐宿主机避免权限问题） |
 
 AstrBot 自身配置（仪表盘端口/用户名密码/提供商等）照常在 AstrBot WebUI 里改。
@@ -177,12 +191,15 @@ QQ 启动需要 10~60 秒（容器内首次更慢）。长时间停留请看启�
 NapCat 的 6099 已固定只绑 127.0.0.1（安全考虑，统一走 `/napcat`）。AstrBot 仪表盘
 就是 6185 本身。如确实需要独立端口，请自行在宿主机配置反代。
 
-**Q: NapCat WebUI 的登录账户和初始密码在哪看？**
-默认账户 `napcat`；初始密码由 NapCat 首次启动时自动生成并打印在启动日志里
-（搜索 `[NapCat] [WebUi] 初始密码`），首次登录成功后会强制要求修改密码
-（需包含英文和数字，长度 6-12 位）。修改后的密码保存在
-`data/napcat/config/webui.json`。忘记密码时删除该文件中的 `password` 字段并
-重启，即可重新生成并打印新的初始密码。
+**Q: NapCat WebUI 的登录账户和密码是什么？**
+账户固定 `napcat`；**密码与 AstrBot 仪表盘完全一致（以 AstrBot 为准）**——
+AstrBot 首次启动会在控制台打印随机初始密码（搜索 `初始密码` 或
+`generated`），登录 AstrBot 后按提示修改；在 AstrBot 控制台改密后，
+NapCat 无需重启即接受新密码（按配置文件 mtime 实时同步）。想改密码请
+去 AstrBot 控制台，NapCat 侧不再单独改密。
+> 想让 NapCat 用独立密码：设 `STACK_SHARED_NAPCAT_PASSWORD=0` 重启，
+> NapCat 会在启动日志里生成并打印自己的初始密码（首次登录强制修改，
+> 需含英文和数字，长度 6-12 位，保存在 `data/napcat/config/webui.json`）。
 
 **Q: AstrBot 怎么升级？**
 按 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md) 的流程同步上游源码即可；集成层

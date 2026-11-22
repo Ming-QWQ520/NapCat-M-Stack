@@ -161,10 +161,14 @@ async def amain(args: argparse.Namespace) -> int:
         except Exception:  # noqa: BLE001
             return
         gateway_port = _effective_gateway_port()
+        if SETTINGS.shared_napcat_password:
+            password_hint = "   ➜  登录账户 napcat，密码与 AstrBot 仪表盘一致（以 AstrBot 为准）"
+        else:
+            password_hint = "   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）"
         print(
             "\n ✨ NapCat WebUI 已接入统一网关\n"
             f"   ➜  http://127.0.0.1:{gateway_port}/napcat/webui/\n"
-            "   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）\n"
+            f"{password_hint}\n"
             f"   ➜  内部端口 127.0.0.1:{port}（仅本机，经 /napcat 代理对外）\n"
         )
 

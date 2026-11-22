@@ -1,7 +1,8 @@
 # Linux 裸机（非 Docker）部署教程
 
 适用场景：不想用 Docker 的 Linux 服务器 / 桌面 / NAS 系统。macOS 用户请看
-文末「macOS 差异」；Docker 部署见仓库根 README。
+文末「macOS 差异」；Docker 部署见仓库根 README；宝塔面板用户看
+[deploy-baota.md](./deploy-baota.md)。
 
 教程目标：从一台干净的 Linux 机器，到 `http://<IP>:6185` 打开 AstrBot
 控制台、`http://<IP>:6185/napcat/` 打开 NapCat WebUI，扫码开聊。
@@ -112,17 +113,22 @@ sudo bash scripts/wire-qq.sh --rollback
 统一网关: http://0.0.0.0:6185  （AstrBot 于 / ，NapCat 于 /napcat/）
  ✨ NapCat WebUI 已接入统一网关
    ➜  http://127.0.0.1:6185/napcat/webui/
-   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）
-[NapCat] [WebUi] 初始账户: napcat
-[NapCat] [WebUi] 初始密码: xxxxxxxx
+   ➜  登录账户 napcat，密码与 AstrBot 仪表盘一致（以 AstrBot 为准）
+   ➜  内部端口 127.0.0.1:6099（仅本机，经 /napcat 代理对外）
+[NapCat] [WebUi] WebUI 已启用共用密码模式
+[NapCat] [WebUi] 登录账户: napcat
+[NapCat] [WebUi] 登录密码与 AstrBot 仪表盘一致（以 AstrBot 为准，请勿在此修改）
 ```
+
+AstrBot 自己的初始密码在其启动日志中打印（首次登录后按提示修改）。
 
 ## 5. 扫码与三步上手
 
-1. **AstrBot**：浏览器打开 `http://<主机IP>:6185`，按日志里的初始密码登录；
-2. **NapCat**：访问 `http://<主机IP>:6185/napcat/`，用账户密码登录（默认账户
-   `napcat`，初始密码在启动日志中打印，首次登录后强制修改密码），然后用
-   QQ **专用小号**扫码登录；
+1. **AstrBot**：浏览器打开 `http://<主机IP>:6185`，按日志里的初始密码登录
+   （首次登录后按提示修改密码）；
+2. **NapCat**：访问 `http://<主机IP>:6185/napcat/`，用账户 `napcat` + **与
+   AstrBot 仪表盘相同的密码**登录（密码以 AstrBot 为准，改密请去 AstrBot
+   控制台，改完即生效），然后用 QQ **专用小号**扫码登录；
 3. **开聊**：扫码成功后日志出现 `aiocqhttp(OneBot v11) 适配器已连接`，
    回到 AstrBot 控制台填大模型 API Key 即可。
 
@@ -132,7 +138,9 @@ sudo bash scripts/wire-qq.sh --rollback
 - NapCat → AstrBot：侧边栏顶部「AstrBot 控制台」。
   （该入口只在统一网关挂载下显示，独立部署的 NapCat 不受影响。）
 
-登录凭证互相独立，两边来回切换**不会**要求重新登录。
+登录凭证互相独立，两边来回切换**不会**要求重新登录；而登录**密码**两边
+一致（以 AstrBot 为准），只需记一套。想让 NapCat 用独立密码：设
+`STACK_SHARED_NAPCAT_PASSWORD=0` 重启（见仓库根 README）。
 
 ## 6. 开机自启（systemd）
 
