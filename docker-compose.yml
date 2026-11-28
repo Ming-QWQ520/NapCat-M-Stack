@@ -1,4 +1,4 @@
-# NapCat-M Stack：单容器一体化部署
+# NapCatQQ-M：单容器一体化部署
 #
 #   docker compose up -d --build
 #   浏览器打开 http://<主机>:6185
@@ -7,17 +7,17 @@
 #
 # 只暴露 6185 一个端口；NapCat WebUI 绑定容器内 127.0.0.1，经统一网关代理。
 services:
-  napcat-m-stack:
+  napcatqq-m:
     build:
       context: .
       args:
-        # NapCat-M Shell 版本（与 NapCatQQ-M Release 对应）
-        NAPCAT_VERSION: v4.18.44
+        # NapCat Shell 版本（与 NapCatQQ-M Release 对应）
+        NAPCAT_VERSION: v4.18.45
         # 网络受限时指向镜像源，例如
-        # NAPCAT_ZIP_URL: https://ghproxy.example.com/https://github.com/Ming-QWQ520/NapCatQQ-M/releases/download/v4.18.44/NapCat.Shell.zip
+        # NAPCAT_ZIP_URL: https://ghproxy.example.com/https://github.com/Ming-QWQ520/NapCatQQ-M/releases/download/v4.18.45/NapCat.Shell.zip
         NAPCAT_ZIP_URL: ""
-    image: napcat-m-stack:latest
-    container_name: napcat-m-stack
+    image: napcatqq-m:latest
+    container_name: napcatqq-m
     restart: unless-stopped
     ports:
       - "6185:6185"          # 唯一对外端口：AstrBot + NapCat 双 WebUI

@@ -1,4 +1,4 @@
-﻿# NapCat-M Stack Windows 一键安装
+﻿# NapCatQQ-M Windows 一键安装
 #
 # 用法（在仓库根目录或任意位置执行均可）：
 #   powershell -ExecutionPolicy Bypass -File windows\install.ps1
@@ -13,7 +13,7 @@
 #
 # 本脚本完成：
 #   1. AstrBot 依赖部署（独立 venv，不污染系统环境）
-#   2. 按 -Flavor 下载并解压 NapCat-M 产物
+#   2. 按 -Flavor 下载并解压 NapCat 产物
 #   3. NapCat WebUI 静态资源子路径重写（/napcat 前缀，供统一网关挂载）
 #   4. 生成 windows\start.bat
 #
@@ -22,7 +22,7 @@
 param(
     [ValidateSet('Node', 'OneKey', '')]
     [string]$Flavor = '',
-    [string]$Version = 'v4.18.44',
+    [string]$Version = 'v4.18.45',
     [string]$PypiMirror = 'https://pypi.tuna.tsinghua.edu.cn/simple'
 )
 
@@ -35,7 +35,7 @@ $venvDir = Join-Path $root 'venv'
 $venvPy = Join-Path $venvDir 'Scripts\python.exe'
 $ReleaseBase = 'https://github.com/Ming-QWQ520/NapCatQQ-M/releases/download'
 
-Write-Host '==== NapCat-M Stack Windows 安装 ===='
+Write-Host '==== NapCatQQ-M Windows 安装 ===='
 
 # ---------------------------------------------------------------- 工具函数
 function Invoke-StackDownload {
@@ -79,7 +79,7 @@ function Expand-StackZip {
 # ---------------------------------------------------------------- 0. 形态选择
 if (-not $Flavor) {
     Write-Host ''
-    Write-Host '请选择 NapCat-M 部署形态：'
+    Write-Host '请选择 NapCat 部署形态：'
     Write-Host '  [1] Node 便携版（推荐）自带无头 QQ + Node.js，免装 QQ 免注入，开箱即用（约 118 MB）'
     Write-Host '  [2] OneKey 注入版      由安装器部署便携 QQ 并注入（注意：其内置 NapCat'
     Write-Host '        下载源已随上游停维失效，失败时请改用 [1]）'
@@ -140,23 +140,23 @@ if (Test-Path $venvPy) {
     Write-Host '[OK] AstrBot 依赖就位'
 }
 
-# ---------------------------------------------------------------- 3. NapCat-M 产物
+# ---------------------------------------------------------------- 3. NapCat 产物
 if ($Flavor -eq 'Node') {
     $nodeDir = Join-Path $PSScriptRoot 'napcat-node'
     $nodeExe = Join-Path $nodeDir 'node.exe'
     $indexJs = Join-Path $nodeDir 'index.js'
     $napcatMjs = Join-Path $nodeDir 'napcat\napcat.mjs'
     if ((Test-Path $nodeExe) -and (Test-Path $indexJs) -and (Test-Path $napcatMjs)) {
-        Write-Host '[OK] NapCat-M Node 便携版已就位，跳过下载。'
+        Write-Host '[OK] NapCat Node 便携版已就位，跳过下载。'
     } else {
         $zipPath = Join-Path $PSScriptRoot 'NapCat.Shell.Windows.Node.zip'
-        Get-StackZip -Name 'NapCat.Shell.Windows.Node.zip' -Out $zipPath -Desc '下载 NapCat-M Node 便携版（约 118 MB，请耐心等待）...'
+        Get-StackZip -Name 'NapCat.Shell.Windows.Node.zip' -Out $zipPath -Desc '下载 NapCat Node 便携版（约 118 MB，请耐心等待）...'
         Write-Host '[..] 解压 windows\napcat-node\ ...'
         Expand-StackZip -Zip $zipPath -Dest $nodeDir
         if (-not ((Test-Path $nodeExe) -and (Test-Path $indexJs) -and (Test-Path $napcatMjs))) {
             throw '解压结果不完整（缺 node.exe / index.js / napcat\napcat.mjs）。请删除 windows\napcat-node 后重跑本脚本。'
         }
-        # 安装包不再保留，释放约 118 MB 磁盘空间（如需重新解压可重跑本脚本）
+        # 校验通过的安装包不再保留，释放约 118 MB 磁盘空间
         Remove-Item $zipPath -Force
         Write-Host '[OK] Node 便携版就位：windows\napcat-node\'
     }
@@ -219,7 +219,7 @@ if ($Flavor -eq 'Node') {
 $startBat = @'
 @echo off
 chcp 65001 >nul
-title NapCat-M Stack
+title NapCatQQ-M
 setlocal
 cd /d "%~dp0.."
 
@@ -234,7 +234,7 @@ set "ASTRBOT_ROOT=%~dp0.."
 set "NAPCAT_WORKDIR=%~dp0..\data\napcat"
 
 if not exist "%~dp0napcat-node\node.exe" if not exist "%~dp0napcat-onekey\NapCatInstaller.exe" (
-    echo [!] NapCat-M artifacts not found. Run windows\install.ps1 first.
+    echo [!] NapCat artifacts not found. Run windows\install.ps1 first.
     pause
     exit /b 1
 )
@@ -266,4 +266,4 @@ if ($Flavor -eq 'Node') {
 }
 Write-Host '2. 浏览器打开 http://127.0.0.1:6185'
 Write-Host '   - /       AstrBot（填大模型 API Key、人格、插件）'
-Write-Host '   - /napcat NapCat（账户 napcat，密码与 AstrBot 仪表盘一致）'
+Write-Host '   - /napcat NapCat（扫码登录 QQ 专用小号，账户密码见启动日志）'

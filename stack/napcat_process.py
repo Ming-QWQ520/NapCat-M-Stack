@@ -1,11 +1,11 @@
 """NapCat(QQ) 子进程监督器。
 
-统一入口 ``main.py`` 是唯一主进程，QQ（内嵌 NapCat-M）作为其子进程运行：
+统一入口 ``main.py`` 是唯一主进程，QQ（内嵌 NapCat）作为其子进程运行：
 
 - 按平台构造启动命令：
   - Windows Node 便携版（推荐）：直接拉起 windows\\napcat-node\\node.exe
   - Windows OneKey：拉起 NapCatWinBootMain.exe（需先运行安装器注入）
-  - Linux / macOS / Docker：直接拉起 QQ（QQ 加载栈内 NapCat-M 产物）
+  - Linux / macOS / Docker：直接拉起 QQ（QQ 加载栈内 NapCat 产物）
 - 管道接住子进程 stdout/stderr，转发到统一日志并解析 WebUI 端口/令牌
 - WebUI 端口发现：优先解析日志行，失败则回退为 127.0.0.1 端口探测
   （NapCat 在端口被占用时会自动 +1 顺延，网关必须跟着发现实际端口）
@@ -22,9 +22,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .settings import StackSettings
+from .settings import NAPCAT_SHARED_PASSWORD_ENV, StackSettings
 
-# 兼容新旧两代 NapCat-M：旧版（token 登录）携带 ?token=，新版（账户密码登录）无查询参数
+# 兼容新旧两代 NapCat：旧版（token 登录）携带 ?token=，新版（账户密码登录）无查询参数
 _WEBUI_URL_LINE = re.compile(
     r"\[NapCat\]\s*\[WebUi\]\s*WebUi User Panel Url:\s*"
     r"http://127\.0\.0\.1:(\d+)/webui(?:\?token=[0-9A-Za-z!@#$%^&*()_+\-=]+)?"
@@ -95,15 +95,9 @@ class NapCatSupervisor:
         env = {
             "NAPCAT_WORKDIR": str(self.settings.napcat_workdir),
         }
-        # 共用密码模式：把 AstrBot 的配置文件路径交给 NapCat，登录密码以
-        # AstrBot 为准（用户显式设置过 NAPCAT_ASTRBOT_CONFIG 时不覆盖）。
-        # 首次启动时 cmd_config.json 可能尚未生成——NapCat 侧在登录时才
-        # 惰性读取，届时 AstrBot 已完成初始化。
-        if (
-            self.settings.shared_napcat_password
-            and "NAPCAT_ASTRBOT_CONFIG" not in os.environ
-        ):
-            env["NAPCAT_ASTRBOT_CONFIG"] = str(self.settings.data_dir / "cmd_config.json")
+        # 共用密码模式：NapCat v4.18.45+ 据此不再自管密码，登录前重读 webui.json
+        if self.settings.shared_password:
+            env[NAPCAT_SHARED_PASSWORD_ENV] = "1"
 
         # 显式覆盖优先（保持当前工作目录，避免用户命令中的相对路径失效）
         override = self.settings.napcat_qq_command
@@ -151,7 +145,7 @@ class NapCatSupervisor:
                 else "Node 便携版（-Flavor Node，推荐）或 OneKey 注入版（-Flavor OneKey）"
             )
             raise NapCatProcessError(
-                f"未找到 NapCat-M Windows 产物（当前偏好：{hint}）。"
+                f"未找到 NapCat Windows 产物（当前偏好：{hint}）。"
                 "请先运行 windows\\install.ps1 完成安装，"
                 "或用环境变量 NAPCAT_QQ_CMD 显式指定启动命令。"
             )

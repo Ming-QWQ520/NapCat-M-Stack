@@ -35,10 +35,7 @@ def _make_layout(root: Path, *, node: bool = False, bootmain: bool = False) -> N
 
 
 def _clean_env(monkeypatch):
-    for var in (
-        "NAPCAT_QQ_CMD", "NAPCAT_FLAVOR", "ACCOUNT", "NAPCAT_WORKDIR", "NAPCAT_DIR",
-        "NAPCAT_ASTRBOT_CONFIG", "STACK_SHARED_NAPCAT_PASSWORD",
-    ):
+    for var in ("NAPCAT_QQ_CMD", "NAPCAT_FLAVOR", "ACCOUNT", "NAPCAT_WORKDIR", "NAPCAT_DIR"):
         monkeypatch.delenv(var, raising=False)
 
 
@@ -163,39 +160,3 @@ def test_napcat_flavor_parsing(tmp_path, monkeypatch):
 
     monkeypatch.setenv("NAPCAT_FLAVOR", "bogus")
     assert settings.napcat_flavor == "auto"
-
-
-def test_shared_password_env_injected(tmp_path, monkeypatch):
-    """共用密码模式：supervisor 默认向 NapCat 子进程注入 NAPCAT_ASTRBOT_CONFIG。"""
-    monkeypatch.setattr(sys, "platform", "win32")
-    _clean_env(monkeypatch)
-    _make_layout(tmp_path, node=True)
-
-    sup = NapCatSupervisor(StackSettings(root=tmp_path))
-    _, env, _ = sup.build_command()
-    assert env["NAPCAT_ASTRBOT_CONFIG"] == str(tmp_path / "data" / "cmd_config.json")
-
-
-def test_shared_password_env_disabled(tmp_path, monkeypatch):
-    """STACK_SHARED_NAPCAT_PASSWORD=0 时不注入（回退独立密码模式）。"""
-    monkeypatch.setattr(sys, "platform", "win32")
-    _clean_env(monkeypatch)
-    monkeypatch.setenv("STACK_SHARED_NAPCAT_PASSWORD", "0")
-    _make_layout(tmp_path, node=True)
-
-    sup = NapCatSupervisor(StackSettings(root=tmp_path))
-    _, env, _ = sup.build_command()
-    assert "NAPCAT_ASTRBOT_CONFIG" not in env
-
-
-def test_shared_password_env_respects_user_override(tmp_path, monkeypatch):
-    """用户显式设置过 NAPCAT_ASTRBOT_CONFIG 时不覆盖。"""
-    monkeypatch.setattr(sys, "platform", "win32")
-    _clean_env(monkeypatch)
-    monkeypatch.setenv("NAPCAT_ASTRBOT_CONFIG", "/custom/astrbot/cmd_config.json")
-    _make_layout(tmp_path, node=True)
-
-    sup = NapCatSupervisor(StackSettings(root=tmp_path))
-    _, env, _ = sup.build_command()
-    # 未被栈值覆盖（用户值由 os.environ 继承，而非 extra_env 注入）
-    assert env.get("NAPCAT_ASTRBOT_CONFIG") != str(tmp_path / "data" / "cmd_config.json")

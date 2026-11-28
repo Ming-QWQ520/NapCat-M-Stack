@@ -51,7 +51,7 @@ _NOT_READY_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NapCat 启动中 · NapCat-M Stack</title>
+<title>NapCat 启动中 · NapCatQQ-M</title>
 <meta http-equiv="refresh" content="5">
 <style>
 *{box-sizing:border-box}

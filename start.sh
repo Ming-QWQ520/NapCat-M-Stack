@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NapCat-M Stack 一键启动（Linux / macOS）
+# NapCatQQ-M 一键启动（Linux / macOS）
 #
 #   ./start.sh              # 前台运行（Ctrl+C 优雅停止）
 #   ./start.sh --daemon     # 后台运行，日志写入 data/stack.log
@@ -45,7 +45,7 @@ fi
 
 # ---------- NapCat 产物 ----------
 if [ ! -f "$REPO_ROOT/napcat/napcat.mjs" ]; then
-    echo "[..] 首次运行：准备 NapCat-M 产物 ..."
+    echo "[..] 首次运行：准备 NapCat 产物 ..."
     bash "$REPO_ROOT/scripts/prepare-napcat.sh"
 fi
 

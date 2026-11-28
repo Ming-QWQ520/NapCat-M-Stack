@@ -1,4 +1,4 @@
-# NapCat-M Stack 单容器镜像：QQ + NapCat-M + AstrBot + 统一网关
+# NapCatQQ-M 单容器镜像：QQ + NapCat + AstrBot + 统一网关
 #
 # 构建上下文优先级（scripts/docker-prepare.py）：
 #   1. napcat/（已运行 scripts/prepare-napcat.sh）
@@ -38,8 +38,8 @@ COPY astrbot /app/astrbot
 COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY scripts/docker-prepare.py /app/docker-prepare.py
 
-# NapCat-M 产物（下载/解压/子路径重写）
-ARG NAPCAT_VERSION=v4.18.44
+# NapCat 产物（下载/解压/子路径重写）
+ARG NAPCAT_VERSION=v4.18.45
 ARG NAPCAT_ZIP_URL=""
 COPY . /src
 RUN python3 /src/scripts/docker-prepare.py \

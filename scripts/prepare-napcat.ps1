@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env pwsh
-# 准备 NapCat-M Shell 产物（Windows OneKey 注入版流程使用）
+# 准备 NapCat Shell 产物（Windows OneKey 注入版流程使用）
 #
 # 用法（仓库根目录执行，或由 windows\install.ps1 进程内调用）：
 #   powershell -ExecutionPolicy Bypass -File scripts\prepare-napcat.ps1 [版本号]
@@ -11,7 +11,7 @@
 # 兼容性说明：本文件为 UTF-8 with BOM + CRLF，Windows PowerShell 5.1 与
 # PowerShell 7+ 均可直接运行。
 param(
-    [string]$Version = 'v4.18.44'
+    [string]$Version = 'v4.18.45'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,7 +62,7 @@ if (Test-Path (Join-Path $TargetDir 'napcat.mjs')) {
     New-Item -ItemType Directory -Path $TargetDir | Out-Null
     Copy-Item -Path (Join-Path $NapCatDir '*') -Destination $TargetDir -Recurse -Force
     Remove-Item $ExtractDir -Recurse -Force
-    Write-Host '[OK] NapCat-M 产物已就位：napcat\'
+    Write-Host '[OK] NapCat 产物已就位：napcat\'
 }
 
 # ---- WebUI 子路径重写（/napcat 前缀，幂等）----

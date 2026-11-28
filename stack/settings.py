@@ -1,4 +1,4 @@
-"""NapCat-M Stack 运行配置。
+"""NapCatQQ-M 运行配置。
 
 所有可调项均可用环境变量覆盖，默认值面向「一条命令直接跑起来」的场景。
 
@@ -33,6 +33,19 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+#: 传给 NapCat 子进程的共用密码开关（NapCat v4.18.45+ 识别：登录前重读
+#: webui.json、不生成初始密码、改密入口指向 AstrBot 控制台）
+NAPCAT_SHARED_PASSWORD_ENV = "NAPCAT_SHARED_PASSWORD"
+
+
+def shared_password_enabled() -> bool:
+    """是否启用 NapCat/AstrBot 共用密码（默认开启，STACK_SHARED_PASSWORD=0 关闭）。"""
+    value = os.environ.get("STACK_SHARED_PASSWORD")
+    if value is None:
+        return True
+    return value.strip().lower() not in ("0", "false", "no", "off")
+
+
 @dataclass
 class StackSettings:
     """栈级配置。"""
@@ -48,7 +61,7 @@ class StackSettings:
 
     @property
     def napcat_dir(self) -> Path:
-        """NapCat-M Shell 产物目录（含 napcat.mjs / static/）。"""
+        """NapCat Shell 产物目录（含 napcat.mjs / static/）。"""
         return Path(
             os.environ.get("NAPCAT_DIR", "")
             or self.root / "napcat"
@@ -134,12 +147,15 @@ class StackSettings:
         default_factory=lambda: _env_bool("STACK_EXIT_WITH_NAPCAT", True)
     )
 
-    #: NapCat WebUI 与 AstrBot 仪表盘共用登录密码（以 AstrBot 为准）。
-    #: 向 NapCat 子进程注入 NAPCAT_ASTRBOT_CONFIG 指向 data/cmd_config.json；
-    #: AstrBot 控制台改密后 NapCat 无需重启即生效。置 0 可回退独立密码。
-    shared_napcat_password: bool = field(
-        default_factory=lambda: _env_bool("STACK_SHARED_NAPCAT_PASSWORD", True)
-    )
+    # ---- 共用密码 -----------------------------------------------------------
+    @property
+    def shared_password(self) -> bool:
+        """NapCat WebUI 与 AstrBot 共用密码（以 AstrBot 为准）。
+
+        并向 NapCat 子进程注入 ``NAPCAT_SHARED_PASSWORD=1``（需产物
+        v4.18.45+：登录前重读 webui.json、不生成初始密码、禁用改密入口）。
+        """
+        return shared_password_enabled()
 
 
 SETTINGS = StackSettings()

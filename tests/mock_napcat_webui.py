@@ -30,7 +30,7 @@ MIME = {
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-#: 模拟后端的账户密码（对齐 NapCat-M v4.18.44 的共用密码登录）
+#: 模拟后端的账户密码（对齐 NapCat v4.18.43+ 的账户密码登录）
 MOCK_USERNAME = "napcat"
 MOCK_PASSWORD = "mock1234"
 
@@ -84,22 +84,18 @@ def handle_http(method: str, path: str, query: str, headers: dict, body: bytes =
             extra="Cache-Control: max-age=86400",
         )
 
-    if path == "/api/auth/login_mode":
-        # 对齐真实后端 v4.18.44：免鉴权的登录模式查询（共用密码模式）
-        return _json_response({"code": 0, "message": "", "data": {"sharedPassword": True}})
     if path == "/api/auth/check":
         authed = bool(headers.get("authorization"))
         return _json_response({"code": 0, "message": "", "data": authed})
     if path == "/api/auth/login":
-        # 对齐真实后端：{username, hash, password} → data.Credential 即后续 Bearer 令牌
-        # （共用密码模式收明文 password，独立模式收 hash，两者择一即可）
+        # 对齐真实后端：{username, hash} → data.Credential 即后续 Bearer 令牌
         try:
             payload = json.loads(body or b"{}")
         except ValueError:
             payload = {}
-        if payload.get("username") == MOCK_USERNAME and (
-            payload.get("hash") == _password_hash(MOCK_PASSWORD)
-            or payload.get("password") == MOCK_PASSWORD
+        if (
+            payload.get("username") == MOCK_USERNAME
+            and payload.get("hash") == _password_hash(MOCK_PASSWORD)
         ):
             return _json_response(
                 {
@@ -112,10 +108,16 @@ def handle_http(method: str, path: str, query: str, headers: dict, body: bytes =
             {"code": -1, "message": "username or password is invalid", "data": None}
         )
     if path == "/api/auth/update_password":
-        # 对齐真实后端：共用密码模式下拒绝改密并引导去 AstrBot 控制台
-        return _json_response(
-            {"code": -1, "message": "共用密码模式：登录密码以 AstrBot 仪表盘为准，请前往 AstrBot 控制台修改", "data": None}
-        )
+        # 对齐真实后端：{oldPassword, newPassword} → 新凭证
+        try:
+            payload = json.loads(body or b"{}")
+        except ValueError:
+            payload = {}
+        if payload.get("oldPassword") == MOCK_PASSWORD and payload.get("newPassword"):
+            return _json_response(
+                {"code": 0, "message": "", "data": {"Credential": "mock-credential-2"}}
+            )
+        return _json_response({"code": -1, "message": "旧密码不匹配", "data": None})
     if path == "/api/Base/GetVersion":
         return _json_response(
             {"code": 0, "message": "", "data": {"version": "4.18.42-mock"}}
@@ -268,9 +270,9 @@ async def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 6099
     server = await asyncio.start_server(handle_connection, "127.0.0.1", port)
     print(f"[mock] NapCat WebUI 模拟后端已启动: http://127.0.0.1:{port}")
-    print("[NapCat] [WebUi] WebUI 已启用共用密码模式")
-    print(f"[NapCat] [WebUi] 登录账户: {MOCK_USERNAME}")
-    print("[NapCat] [WebUi] 登录密码与 AstrBot 仪表盘一致（以 AstrBot 为准）")
+    print("[NapCat] [WebUi] WebUI 已启用账户密码登录")
+    print(f"[NapCat] [WebUi] 初始账户: {MOCK_USERNAME}")
+    print(f"[NapCat] [WebUi] 初始密码: {MOCK_PASSWORD}")
     print(f"[NapCat] [WebUi] WebUi User Panel Url: http://127.0.0.1:{port}/webui")
     async with server:
         await server.serve_forever()

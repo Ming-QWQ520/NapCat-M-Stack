@@ -43,14 +43,6 @@ check "JS 中无残留根绝对 base" 'BAD-NEVER' "$(echo "$R2" | grep -c '"/api
 echo "== 6. NapCat API 代理 =="
 R=$(curl -sS -X POST "$GATEWAY/napcat/api/auth/check")
 check "POST /napcat/api/auth/check" '"code":0' "$R"
-R=$(curl -sS "$GATEWAY/napcat/api/auth/login_mode")
-check "GET /napcat/api/auth/login_mode（共用密码模式）" '"sharedPassword":true' "$R"
-R=$(curl -sS -X POST "$GATEWAY/napcat/api/auth/login" -H 'Content-Type: application/json' -d '{"username":"napcat","password":"mock1234"}')
-check "POST /napcat/api/auth/login（明文密码，共用模式）" '"Credential"' "$R"
-R=$(curl -sS -X POST "$GATEWAY/napcat/api/auth/login" -H 'Content-Type: application/json' -d '{"username":"napcat","password":"wrong"}')
-check "POST /napcat/api/auth/login（错误密码被拒）" 'username or password is invalid' "$R"
-R=$(curl -sS -X POST "$GATEWAY/napcat/api/auth/update_password" -H 'Content-Type: application/json' -d '{"oldPassword":"mock1234","newPassword":"abc123x"}')
-check "POST /napcat/api/auth/update_password（共用模式拒绝改密）" 'AstrBot 仪表盘为准' "$R"
 
 echo "== 7. JSON 响应体站内路径改写 =="
 R=$(curl -sS "$GATEWAY/napcat/api/Plugin")

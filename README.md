@@ -1,8 +1,8 @@
 <div align="center">
 
-# NapCat-M Stack
+# NapCatQQ-M
 
-**NapCat-M + AstrBot 真正的一体化项目：一个仓库、一条命令、一个进程树、一个端口。**
+**NapCat + AstrBot 真正的一体化项目：一个仓库、一条命令、一个进程树、一个端口。**
 
 `python main.py` → 扫码 → 填 Key → 开聊 🎣
 
@@ -12,12 +12,13 @@
 
 ## 这是什么
 
-本仓库把 **[NapCat-M](https://github.com/Ming-QWQ520/NapCatQQ-M)**（QQNT / OneBot v11 协议端）与
+本仓库（**NapCatQQ-M**）把 **NapCat**（QQNT / OneBot v11 协议端，产物由
+[NapCatQQ-M Release](https://github.com/Ming-QWQ520/NapCatQQ-M/releases) 分发）与
 **[AstrBot](https://github.com/AstrBotDevs/AstrBot)**（LLM Bot 框架）整合为**一个项目**：
 
 - **不再是脚本编排**——AstrBot 以源码内嵌于本仓库（见 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md)），
   由统一入口 `main.py` 在**同一进程内**驱动其核心生命周期与仪表盘
-- **一个进程树**——`python main.py` 是唯一主进程，QQ（内嵌 NapCat-M）是其受监督子进程；
+- **一个进程树**——`python main.py` 是唯一主进程，QQ（内嵌 NapCat）是其受监督子进程；
   QQ 崩溃则整栈退出，交给 `restart: unless-stopped` 或用户重启
 - **一个端口**——6185 同时服务两套 WebUI：
   - `/` → **AstrBot 控制台**（填大模型 API Key / 人格 / 插件市场 / 对话）
@@ -35,7 +36,7 @@ python main.py                     ← 唯一主进程
 │   └── 统一网关 :6185
 │       ├── /             AstrBot WebUI
 │       └── /napcat/...   ──反向代理──▶  NapCat WebUI（127.0.0.1:6099，仅本机）
-└── QQ（内嵌 NapCat-M）             ← 受监督子进程
+└── QQ（内嵌 NapCat）                ← 受监督子进程
     └── 反向 WS ──▶ 127.0.0.1:6199 ──▶ AstrBot aiocqhttp 平台
 ```
 
@@ -48,20 +49,20 @@ python main.py                     ← 唯一主进程
 ### 方式一：Docker（推荐，服务器/Linux）
 
 ```bash
-git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
-cd NapCat-M-Stack
+git clone https://github.com/Ming-QWQ520/NapCatQQ-M
+cd NapCatQQ-M
 docker compose up -d --build
 ```
 
-构建时会自动下载 NapCat-M 产物并完成 WebUI 子路径重写（网络受限可用
+构建时会自动下载 NapCat 产物并完成 WebUI 子路径重写（网络受限可用
 `--build-arg NAPCAT_ZIP_URL=` 指向镜像源；也可先跑
 `bash scripts/prepare-napcat.sh` 把产物放进构建上下文）。
 
 ### 方式二：Windows 原生
 
 ```powershell
-git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
-cd NapCat-M-Stack\windows
+git clone https://github.com/Ming-QWQ520/NapCatQQ-M
+cd NapCatQQ-M\windows
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
@@ -80,9 +81,9 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 ### 方式三：Linux / macOS 原生
 
 ```bash
-git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
-cd NapCat-M-Stack
-bash scripts/prepare-napcat.sh   # 下载 NapCat-M 产物并完成 /napcat 子路径重写
+git clone https://github.com/Ming-QWQ520/NapCatQQ-M
+cd NapCatQQ-M
+bash scripts/prepare-napcat.sh   # 下载 NapCat 产物并完成 /napcat 子路径重写
 sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 ./start.sh                       # 自动准备 venv、依赖，然后启动整栈
 ```
@@ -95,17 +96,20 @@ sudo bash scripts/wire-qq.sh     # 把 NapCat 接进 QQ（可逆：--rollback）
 > **完整教程**（QQNT 安装、接线原理、systemd 开机自启、升级与排障）：
 > [docs/deploy-linux-native.md](./docs/deploy-linux-native.md)
 
-### 方式四：宝塔面板（Linux 服务器）
-
-已在用宝塔面板的服务器，一条命令完成环境准备，再用面板的
-「进程守护管理器」常驻，可选挂域名 + HTTPS：
+### 方式四：宝塔面板（Python 项目管理器）
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/Ming-QWQ520/NapCat-M-Stack/main/scripts/baota-setup.sh) --mirror
+# 代码放到任意目录（如 /www/wwwroot/napcatqq-m），宝塔命令行直接启动：
+cd /www/wwwroot/napcatqq-m
+python bt-main.py
 ```
 
-> **完整教程**（QQNT 安装、守护进程配置、Nginx 反代 WebSocket/SSE 片段、
-> 升级与 FAQ）：[docs/deploy-baota.md](./docs/deploy-baota.md)
+或在宝塔面板「网站 → Python 项目」中添加项目：启动文件选 `bt-main.py`，
+端口填 `6185` 即可（面板会自动守护进程、记录日志）。`bt-main.py` 会自动
+检查依赖、下载 NapCat 产物，并以 root 运行时自动完成 QQ 接线。
+
+> **完整教程**（面板配置、QQ 安装、权限与常见问题）：
+> [docs/deploy-baota.md](./docs/deploy-baota.md)
 
 ## 三步上手
 
@@ -114,19 +118,28 @@ bash <(curl -sSL https://raw.githubusercontent.com/Ming-QWQ520/NapCat-M-Stack/ma
 ```
 
 1. **起栈**：按上面任一方式启动，浏览器打开 `http://<主机IP>:6185`
-2. **扫码**：进入 `http://<主机IP>:6185/napcat/`，用账户 `napcat` + **与
-   AstrBot 仪表盘相同的密码**登录（密码以 AstrBot 为准：在 AstrBot 控制台
-   改密后 NapCat 无需重启即同步生效），然后用 QQ 专用小号扫码登录
-3. **填 Key**：回到 `http://<主机IP>:6185/`，AstrBot 控制台里填大模型 API Key、
-   设人格、逛插件市场
+2. **登录**：用日志里的初始密码登录 AstrBot 控制台（首次登录后可改密）；
+   NapCat WebUI（`http://<主机IP>:6185/napcat/`）**与 AstrBot 共用同一个密码**
+   （账户 `napcat`，登录 AstrBot 后即可用同一密码进入），然后用 QQ 专用小号扫码登录
+3. **填 Key**：回到 AstrBot 控制台里填大模型 API Key、设人格、逛插件市场
 
 接线已经自动完成——扫码成功后 NapCat 会反向 WS 连上 AstrBot（日志出现
 `aiocqhttp(OneBot v11) 适配器已连接`），用另一个 QQ 给小号发消息即可开聊。
 
 两个 WebUI 之间可直接跳转：AstrBot → NapCat 把地址改为 `/napcat`；
-NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。两边登录凭证相互独立，
-来回切换不会被登出；而登录**密码**两边一致（以 AstrBot 为准），
-只需记一套（需 NapCat-M v4.18.44 及以上）。
+NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。
+
+### 共用密码（以 AstrBot 为准）
+
+NapCat WebUI 不再单独设密码：**与 AstrBot 控制台共用同一个密码**，且以
+AstrBot 为准——在 AstrBot 里改密后，NapCat 无需重启即可用新密码登录
+（需 NapCat 产物 v4.18.45 及以上）：
+
+- 首次启动：AstrBot 生成的初始密码会自动同步给 NapCat
+- 之后在 AstrBot 控制台改密，登录/改密成功即同步
+- NapCat 侧的「修改密码」入口会提示前往 AstrBot 控制台
+- 不想要这个行为？`STACK_SHARED_PASSWORD=0` 恢复 NapCat 自管密码
+  （初始密码由 NapCat 生成并打印在启动日志，首次登录后强制修改）
 
 ## 端口与路径
 
@@ -139,10 +152,10 @@ NapCat → AstrBot 点侧边栏顶部「AstrBot 控制台」。两边登录凭�
 | 路径 | 说明 |
 | --- | --- |
 | `data/` | AstrBot 数据 + NapCat 配置（`data/napcat/config/`）+ QQ 登录态（Docker 与 Windows Node 便携版：`data/qq/`） |
-| `napcat/` | NapCat-M Shell 产物（prepare 脚本生成，已含子路径重写） |
+| `napcat/` | NapCat Shell 产物（prepare 脚本生成，已含子路径重写） |
 | `astrbot/` | 内嵌的 AstrBot 源码（未修改，AGPL-3.0） |
 | `stack/` | 集成层：网关代理、子进程监督、WebUI 重写器、自动接线 |
-| `main.py` | 唯一入口 |
+| `main.py` | 唯一入口（`bt-main.py` 为宝塔面板适配入口，功能等价） |
 
 ## 统一网关是怎么做到的
 
@@ -172,8 +185,8 @@ NapCat WebUI 前端（vite 构建）把所有网络路径硬编码为根绝对�
 | `NAPCAT_FLAVOR` | `auto` | Windows 部署形态偏好：`auto`（Node 优先）/ `node` / `onekey` |
 | `QQ_PATH` | `/opt/QQ/qq` | Linux 原生部署时 QQ 可执行文件路径 |
 | `STACK_AUTO_WIRE` | `1` | 首次启动自动创建 AstrBot 的 OneBot 平台 |
+| `STACK_SHARED_PASSWORD` | `1` | NapCat 与 AstrBot 共用密码（以 AstrBot 为准；`0` 恢复 NapCat 自管密码） |
 | `STACK_EXIT_WITH_NAPCAT` | `1` | QQ 子进程退出时整栈退出 |
-| `STACK_SHARED_NAPCAT_PASSWORD` | `1` | NapCat WebUI 与 AstrBot 仪表盘共用登录密码（以 AstrBot 为准）；置 `0` 回退为 NapCat 独立密码 |
 | `NAPCAT_UID` / `NAPCAT_GID` | `1000` | Docker 下运行用户（对齐宿主机避免权限问题） |
 
 AstrBot 自身配置（仪表盘端口/用户名密码/提供商等）照常在 AstrBot WebUI 里改。
@@ -192,22 +205,19 @@ NapCat 的 6099 已固定只绑 127.0.0.1（安全考虑，统一走 `/napcat`�
 就是 6185 本身。如确实需要独立端口，请自行在宿主机配置反代。
 
 **Q: NapCat WebUI 的登录账户和密码是什么？**
-账户固定 `napcat`；**密码与 AstrBot 仪表盘完全一致（以 AstrBot 为准）**——
-AstrBot 首次启动会在控制台打印随机初始密码（搜索 `初始密码` 或
-`generated`），登录 AstrBot 后按提示修改；在 AstrBot 控制台改密后，
-NapCat 无需重启即接受新密码（按配置文件 mtime 实时同步）。想改密码请
-去 AstrBot 控制台，NapCat 侧不再单独改密。
-
-> 想让 NapCat 用独立密码：设 `STACK_SHARED_NAPCAT_PASSWORD=0` 重启，
-> NapCat 会在启动日志里生成并打印自己的初始密码（首次登录强制修改，
-> 需含英文和数字，长度 6-12 位，保存在 `data/napcat/config/webui.json`）。
+账户固定 `napcat`；密码与 AstrBot 控制台共用（默认行为，需产物 v4.18.45+）：
+先登录一次 AstrBot 即完成同步，之后两套面板同一密码。改密请到 AstrBot
+控制台。若设置了 `STACK_SHARED_PASSWORD=0`，则 NapCat 自管密码：初始密码
+由首次启动时生成并打印在日志里（搜索 `[NapCat] [WebUi] 初始密码`），首次
+登录后强制修改；忘记密码时删除 `data/napcat/config/webui.json` 中的
+`password` 字段并重启即可重新生成。
 
 **Q: AstrBot 怎么升级？**
 按 [VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md) 的流程同步上游源码即可；集成层
 （`stack/`）对 AstrBot 只依赖其公开的库接口，改动面极小。
 
 **Q: 支持别的 OneBot 框架吗？**
-NapCat-M 是标准 OneBot v11 协议端。想换 Lagrange 等其它实现：停用栈内 QQ
+NapCat 是标准 OneBot v11 协议端。想换 Lagrange 等其它实现：停用栈内 QQ
 （`STACK_EXIT_WITH_NAPCAT=0`），把 `NAPCAT_QQ_CMD` 指向你的协议端启动命令即可，
 AstrBot 侧无需任何改动。
 
@@ -225,5 +235,5 @@ NAPCAT_QQ_CMD="./venv/bin/python tests/mock_napcat_webui.py 6099" ./venv/bin/pyt
 ## 许可
 
 本仓库整体以 **AGPL-3.0** 发布（与内嵌的 AstrBot 一致），见 [LICENSE](LICENSE) 与
-[VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md)。NapCat-M 产物在部署时从其 Release 下载，
+[VENDORED-ASTRBOT.md](VENDORED-ASTRBOT.md)。NapCat 产物在部署时从 NapCatQQ-M Release 下载，
 许可遵循上游。使用请遵守当地法律法规，QQ 账号风控风险自负。

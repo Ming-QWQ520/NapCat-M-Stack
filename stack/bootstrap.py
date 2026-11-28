@@ -3,9 +3,7 @@
 目标：「扫码 → 填 Key → 开聊」路径上的手工接线步骤全部归零。
 
 - 预置 ``webui.json``：NapCat WebUI 只绑 127.0.0.1，端口确定化；登录凭证
-  为「账户 napcat + AstrBot 仪表盘密码」（默认共用密码模式，由 supervisor
-  注入 NAPCAT_ASTRBOT_CONFIG 指向 data/cmd_config.json，以 AstrBot 为准；
-  STACK_SHARED_NAPCAT_PASSWORD=0 时回退为 NapCat 自身的独立密码）
+  （账户 napcat + 初始密码）由 NapCat 启动时自动生成并输出到控制台
 - 预置 ``onebot11.json``：新登录的 QQ 号自动继承「反向 WS → 本机 6199」
 - AstrBot 侧自动创建 aiocqhttp(OneBot v11) 平台，监听 6199 等待 NapCat 回连
 """
@@ -22,9 +20,8 @@ def seed_napcat_configs(settings: StackSettings) -> None:
     """写入 NapCat 预置配置。
 
     幂等：已存在的文件不覆盖（用户在 NapCat WebUI 里改过的配置优先）。
-    登录密码不在此处预置——默认共用密码模式下密码以 AstrBot 仪表盘为准
-    （supervisor 注入 NAPCAT_ASTRBOT_CONFIG）；独立模式下由 NapCat 首次
-    启动时自动生成初始密码并打印到控制台。
+    登录密码不在此处预置——由 NapCat 首次启动时自动生成初始密码并
+    打印到控制台（见 NapCat v4.18.43+ 的账户密码登录；v4.18.45 起默认与 AstrBot 共用密码）。
     """
     config_dir = settings.napcat_config_dir
     config_dir.mkdir(parents=True, exist_ok=True)

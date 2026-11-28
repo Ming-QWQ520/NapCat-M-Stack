@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NapCat-M Stack 容器入口（root 阶段）
+# NapCatQQ-M 容器入口（root 阶段）
 #
 # 职责（对齐 mlikiowa/napcat-docker 官方 entrypoint 的容器环境处理）：
 #   1. NapCat 产物安装与 WebUI 令牌/端口预置（幂等）

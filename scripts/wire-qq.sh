@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 裸机 Linux：把栈内 NapCat-M 产物接进系统 QQNT（Electron）
+# 裸机 Linux：把栈内 NapCat 产物接进系统 QQNT（Electron）
 #
 # 原理：QQ 是 Electron 应用。把它 resources/app/package.json 的 main 指向
 # NapCat 入口后，QQ 启动时会先加载 NapCat，由 NapCat 接管协议。本脚本：

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Docker 构建期 NapCat 产物准备。
 
-按优先级取用 NapCat-M Shell 产物并完成 WebUI 子路径重写：
+按优先级取用 NapCat Shell 产物并完成 WebUI 子路径重写：
 
 1. 构建上下文中已就位的 ``napcat/`` 目录（本地跑过 scripts/prepare-napcat.sh）
 2. 构建上下文中的 ``scripts/NapCat.Shell.zip``（手动下载放置）
@@ -56,7 +56,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--src", default="/src", help="构建上下文挂载位置")
     parser.add_argument("--dest", default="/app/napcat", help="产物输出目录")
-    parser.add_argument("--version", default="v4.18.44")
+    parser.add_argument("--version", default="v4.18.45")
     parser.add_argument("--url", default="", help="下载地址（默认按版本号拼接 GitHub Releases）")
     args = parser.parse_args()
 

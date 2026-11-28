@@ -17,7 +17,7 @@ python main.py（由 start.sh / systemd 拉起）      ← 唯一主进程
 │   └── 统一网关 :6185
 │       ├── /            AstrBot WebUI
 │       └── /napcat/...  NapCat WebUI（代理到仅本机的 6099）
-└── QQ（内嵌 NapCat-M）                          ← 受监督子进程
+└── QQ（内嵌 NapCat）                          ← 受监督子进程
     └── 反向 WS → 127.0.0.1:6199 → AstrBot aiocqhttp 平台
 ```
 
@@ -44,7 +44,7 @@ sudo apt install -y python3 python3-venv python3-pip git curl xvfb
 
 ## 2. 安装 Linux 版 QQNT
 
-从 [QQ 官网](https://linux.qq.com/) 下载最新版（NapCat-M 当前对应
+从 [QQ 官网](https://linux.qq.com/) 下载最新版（NapCat 当前对应
 QQ 9.9.x），Debian 系用 deb、RHEL 系用 rpm：
 
 ```bash
@@ -71,10 +71,10 @@ ls /opt/QQ/resources/app/package.json   # 应当存在
 ## 3. 获取代码并接线
 
 ```bash
-git clone https://github.com/Ming-QWQ520/NapCat-M-Stack
-cd NapCat-M-Stack
+git clone https://github.com/Ming-QWQ520/NapCatQQ-M
+cd NapCatQQ-M
 
-# 3.1 下载 NapCat-M Shell 产物并完成 WebUI 子路径重写（/napcat 前缀）
+# 3.1 下载 NapCat Shell 产物并完成 WebUI 子路径重写（/napcat 前缀）
 bash scripts/prepare-napcat.sh
 
 # 3.2 把 NapCat 接进 QQ（需要 root；QQ 不在默认路径时加 --qq-dir）
@@ -113,22 +113,17 @@ sudo bash scripts/wire-qq.sh --rollback
 统一网关: http://0.0.0.0:6185  （AstrBot 于 / ，NapCat 于 /napcat/）
  ✨ NapCat WebUI 已接入统一网关
    ➜  http://127.0.0.1:6185/napcat/webui/
-   ➜  登录账户 napcat，密码与 AstrBot 仪表盘一致（以 AstrBot 为准）
-   ➜  内部端口 127.0.0.1:6099（仅本机，经 /napcat 代理对外）
-[NapCat] [WebUi] WebUI 已启用共用密码模式
+   ➜  密码与 AstrBot 控制台共用：先登录一次 http://<主机>:6185/ ，即可用同一密码登录本页
+[NapCat] [WebUi] WebUI 已启用账户密码登录（与 AstrBot 共用密码）
 [NapCat] [WebUi] 登录账户: napcat
-[NapCat] [WebUi] 登录密码与 AstrBot 仪表盘一致（以 AstrBot 为准，请勿在此修改）
 ```
-
-AstrBot 自己的初始密码在其启动日志中打印（首次登录后按提示修改）。
 
 ## 5. 扫码与三步上手
 
-1. **AstrBot**：浏览器打开 `http://<主机IP>:6185`，按日志里的初始密码登录
-   （首次登录后按提示修改密码）；
-2. **NapCat**：访问 `http://<主机IP>:6185/napcat/`，用账户 `napcat` + **与
-   AstrBot 仪表盘相同的密码**登录（密码以 AstrBot 为准，改密请去 AstrBot
-   控制台，改完即生效），然后用 QQ **专用小号**扫码登录；
+1. **AstrBot**：浏览器打开 `http://<主机IP>:6185`，按日志里的初始密码登录；
+2. **NapCat**：访问 `http://<主机IP>:6185/napcat/`，用账户 `napcat` +
+   **AstrBot 的同一密码**登录（两套面板共用密码，以 AstrBot 为准），然后用
+   QQ **专用小号**扫码登录；
 3. **开聊**：扫码成功后日志出现 `aiocqhttp(OneBot v11) 适配器已连接`，
    回到 AstrBot 控制台填大模型 API Key 即可。
 
@@ -138,17 +133,16 @@ AstrBot 自己的初始密码在其启动日志中打印（首次登录后按提
 - NapCat → AstrBot：侧边栏顶部「AstrBot 控制台」。
   （该入口只在统一网关挂载下显示，独立部署的 NapCat 不受影响。）
 
-登录凭证互相独立，两边来回切换**不会**要求重新登录；而登录**密码**两边
-一致（以 AstrBot 为准），只需记一套。想让 NapCat 用独立密码：设
-`STACK_SHARED_NAPCAT_PASSWORD=0` 重启（见仓库根 README）。
+密码在 AstrBot 控制台统一管理（改密后 NapCat 无需重启即生效）；想恢复
+NapCat 自管密码可设 `STACK_SHARED_PASSWORD=0`，详见仓库 README。
 
 ## 6. 开机自启（systemd）
 
-创建 `/etc/systemd/system/napcat-m-stack.service`（把路径和用户换成你的）：
+创建 `/etc/systemd/system/napcatqq-m.service`（把路径和用户换成你的）：
 
 ```ini
 [Unit]
-Description=NapCat-M Stack (AstrBot + NapCat)
+Description=NapCatQQ-M (AstrBot + NapCat)
 After=network-online.target
 Wants=network-online.target
 
@@ -156,8 +150,8 @@ Wants=network-online.target
 Type=simple
 # 建议用普通用户跑（该用户需能启动 QQ；xvfb-run 会自动拉起虚拟显示）
 User=youruser
-WorkingDirectory=/home/youruser/NapCat-M-Stack
-ExecStart=/home/youruser/NapCat-M-Stack/start.sh
+WorkingDirectory=/home/youruser/NapCatQQ-M
+ExecStart=/home/youruser/NapCatQQ-M/start.sh
 Restart=on-failure
 RestartSec=10
 # QQ/Electron 在部分内核下需要放宽限制
@@ -171,17 +165,17 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now napcat-m-stack
-journalctl -u napcat-m-stack -f        # 跟踪日志
+sudo systemctl enable --now napcatqq-m
+journalctl -u napcatqq-m -f        # 跟踪日志
 ```
 
 ## 7. 日常升级
 
 ```bash
-cd NapCat-M-Stack
+cd NapCatQQ-M
 git pull
-bash scripts/prepare-napcat.sh         # NapCat-M 有新版本时刷新产物
-sudo systemctl restart napcat-m-stack  # 或前台用户自行重启
+bash scripts/prepare-napcat.sh         # NapCat 有新版本时刷新产物
+sudo systemctl restart napcatqq-m  # 或前台用户自行重启
 ```
 
 符号链接接线方式的优点：`prepare-napcat.sh` 刷新仓库产物后无需重跑接线。

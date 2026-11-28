@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: 安装 pytest
-        run: pip install pytest
+      - name: 安装 pytest 与测试依赖
+        run: pip install pytest fastapi httpx
       - name: 运行测试
         run: pytest tests/ -q

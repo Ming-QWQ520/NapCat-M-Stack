@@ -1,4 +1,4 @@
-"""NapCat-M Stack 统一入口。
+"""NapCatQQ-M 统一入口。
 
 一条命令同时拉起整栈::
 
@@ -11,7 +11,7 @@
     │   └── 统一网关 :6185
     │       ├── /             AstrBot WebUI
     │       └── /napcat/...   NapCat WebUI（反向代理到 127.0.0.1:6099）
-    └── QQ（内嵌 NapCat-M）             ← 受监督子进程
+    └── QQ（内嵌 NapCat）                ← 受监督子进程
         └── 反向 WS → 127.0.0.1:6199 → AstrBot aiocqhttp 平台
 
 首次启动自动完成全部接线：AstrBot 平台创建、NapCat 反向 WS 预配置、
@@ -39,12 +39,12 @@ runtime_bootstrap.initialize_runtime_bootstrap()
 DASHBOARD_RESET_PASSWORD_ENV = "ASTRBOT_RESET_DASHBOARD_PASSWORD"
 
 STACK_BANNER = r"""
- _   _  _____  _  ___  __     __ _______ _   _  ____  _  _______ ____
-| \ | || ____|| |/ _ \ \ \   / /| ____| \ | |/ ___|| |/ / ____|  _ \
-|  \| ||  _|  | | | | | \ \ / / |  _|  |  \| |\___ \| ' /|  _| | |_) |
-| |\  || |___ | | |_| |  \ V /  | |___ | |\  | ___) | . \| |___|  _ <
-|_| \_||_____||_|\___/    \_/   |_____||_| \_||____/|_|\_\_____|_| \_\
-        NapCat-M + AstrBot · 单进程树 · 单命令 · 单端口
+ _   _           _____    ____           _____    ____    ____           __  __
+| \ | |   __ _  |  __ \  / ___|   __ _  |_   _|  / _  |  / _  |         |  \/  |
+|  \| |  / _` | | |__) | | |      / _` |   | |   | | | | | | | |  _____  | |\/| |
+| |\  | | (_| | |  ___/ | |___  | (_| |   | |   | |_| | | |_| | |_____| | |  | |
+|_| \_|  \__,_| |_|      \____|  \__,_|   |_|    \__\ |  \__\ |         |_| |_|
+        NapCatQQ-M · NapCat + AstrBot · 单进程树 · 单命令 · 单端口
 """
 
 
@@ -129,6 +129,10 @@ async def amain(args: argparse.Namespace) -> int:
     from stack.napcat_process import NapCatSupervisor  # noqa: PLC0415
     from stack.napcat_proxy import mount_napcat_proxy  # noqa: PLC0415
     from stack.settings import SETTINGS  # noqa: PLC0415
+    from stack.shared_password import (  # noqa: PLC0415
+        mount_shared_password_sync,
+        sync_initial_password,
+    )
 
     print(STACK_BANNER)
 
@@ -161,14 +165,19 @@ async def amain(args: argparse.Namespace) -> int:
         except Exception:  # noqa: BLE001
             return
         gateway_port = _effective_gateway_port()
-        if SETTINGS.shared_napcat_password:
-            password_hint = "   ➜  登录账户 napcat，密码与 AstrBot 仪表盘一致（以 AstrBot 为准）"
+        if SETTINGS.shared_password:
+            password_hint = (
+                "   ➜  密码与 AstrBot 控制台共用：先登录一次 http://<主机>:%s/ ，"
+                "即可用同一密码登录本页\n" % gateway_port
+            )
         else:
-            password_hint = "   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）"
+            password_hint = (
+                "   ➜  登录账户 napcat，初始密码见上方 [NapCat] 启动日志（首次登录后需修改）\n"
+            )
         print(
             "\n ✨ NapCat WebUI 已接入统一网关\n"
             f"   ➜  http://127.0.0.1:{gateway_port}/napcat/webui/\n"
-            f"{password_hint}\n"
+            f"{password_hint}"
             f"   ➜  内部端口 127.0.0.1:{port}（仅本机，经 /napcat 代理对外）\n"
         )
 
@@ -178,6 +187,17 @@ async def amain(args: argparse.Namespace) -> int:
     from astrbot.core import LogBroker, LogManager, db_helper, logger  # noqa: PLC0415
     from astrbot.core.core_lifecycle import AstrBotCoreLifecycle  # noqa: PLC0415
     from astrbot.dashboard.server import AstrBotDashboard  # noqa: PLC0415
+
+    # 共用密码：首启/重置密码后，把 AstrBot 生成的初始密码同步给 NapCat
+    # （必须在仪表盘启动打印、清空该内存属性之前完成）
+    if SETTINGS.shared_password:
+        try:
+            if sync_initial_password(SETTINGS):
+                logger.info(
+                    "已把 AstrBot 初始密码同步给 NapCat WebUI（/ 与 /napcat 共用同一密码）"
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("同步 AstrBot 初始密码到 NapCat 失败（不影响启动）。")
 
     # 零接线：自动创建 OneBot v11 平台等待 NapCat 回连
     if SETTINGS.auto_wire_aiocqhttp:
@@ -221,6 +241,10 @@ async def amain(args: argparse.Namespace) -> int:
 
     # 关键：把 /napcat 代理挂进同一个 FastAPI 应用 —— 两套 WebUI 同端口
     mount_napcat_proxy(dashboard.asgi_app, supervisor, SETTINGS)
+
+    # 共用密码：AstrBot 登录/改密成功即同步给 NapCat（以 AstrBot 为准）
+    if mount_shared_password_sync(dashboard.asgi_app, SETTINGS):
+        logger.info("已启用 NapCat/AstrBot 共用密码（以 AstrBot 为准，可用 STACK_SHARED_PASSWORD=0 关闭）")
 
     dashboard_coro = dashboard.run()
     tasks: list[asyncio.Task] = [core_task]
@@ -270,13 +294,13 @@ async def amain(args: argparse.Namespace) -> int:
     except Exception:  # noqa: BLE001
         pass
     await supervisor.stop()
-    print("[OK] NapCat-M Stack 已退出。")
+    print("[OK] NapCatQQ-M 已退出。")
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="napcat-m-stack", description="NapCat-M + AstrBot 一体化栈"
+        prog="napcatqq-m", description="NapCat + AstrBot 一体化栈（NapCatQQ-M）"
     )
     parser.add_argument(
         "--webui-dir",
